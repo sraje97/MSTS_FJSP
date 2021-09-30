@@ -1,0 +1,21 @@
+H:\Documents\Github\MSTS_FJSP>
+python -m venv MEVenv
+
+(MEVenv) H:\Documents\Github\MSTS_FJSP>
+python -m pip install --upgrade pip
+python -m pip install numpy
+python -m pip install pandas
+python -m pip install openpyxl
+
+
+
+Use "cls" to clear powershell window
+Use "pip freeze > requirements.txt" to create a requirements file for python packages.
+Use "pip install -r requirements.txt" to restore those python packages.
+May have to use "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted" in VSCode powershell to open Virtual Environment
+Set User settings: Python Path as virtual environment Python
+	1. Settings
+	2. User (not Workspace) tab
+	3. Settings.json
+	4. "python.defaultInterpreterPath": "\\files.auckland.ac.nz\\myhome\\Documents\\GitHub\\MSTS_FJSP\\MEVenv\\Scripts\\python.exe"
+	5. Reload VS Code
