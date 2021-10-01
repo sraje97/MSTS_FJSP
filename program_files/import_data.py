@@ -21,5 +21,5 @@ def import_machine_data(filename):
 def import_transition_times(filename):
 
     # Read data from Sheet2 of Machine_Data file
-    t_times = pd.read_excel(filename, sheet_name='Sheet2', engine='openpyxl')
+    t_times = pd.read_excel(filename, index_col=0, sheet_name='Sheet2', engine='openpyxl')
     return t_times

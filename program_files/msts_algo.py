@@ -66,20 +66,26 @@ def msts():
         print(machines_array[i])
 
     ## IMPORT TRANISITION TIMES ##
-    global t_times_df
+    #global t_times_df
     t_times_df = import_data.import_transition_times(filepath)
+    col_names = list(t_times_df.columns)
+    t_times_array = t_times_df.to_numpy()
+    #print(t_times_df)
 
     ## INITIALISE GRAPH ##
     G = nx.Graph()
     for i in range(len(machines_array)):
         graph.add_node(G, machines_array[i])
-    #print("Printing Graph")
-    #print(graph.get_graph_info(G))
+    
+    graph.add_edge_costs(G, t_times_array, col_names)
 
-    #print("Printing Node")
-    #print(graph.get_node_info(G, 'M1'))
+    print("Printing Graph")
+    print(graph.get_graph_info(G))
 
+    print("Printing Node")
+    print(graph.get_node_info(G, 'M1'))
 
+    """
     ############################################################
     #                   INITIAL SOLUTION                       #
     ############################################################
@@ -91,7 +97,7 @@ def msts():
     # Random machine assignment
     if algo_choice.lower() == 'random':
         print(algo_choice)
-        x = machine_assignment_algo.run_random(jobs_array, machines_array, t_times_df)
+        x = machine_assignment_algo.run_random(jobs_array, G, t_times_df)
     
     # Greedy machine assignment
     elif algo_choice.lower() == 'greedy':
@@ -101,7 +107,7 @@ def msts():
     else:
         print(algo_choice)
 
-
+    """
 
 
 # Begin program here

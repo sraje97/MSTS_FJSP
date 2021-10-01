@@ -1,12 +1,22 @@
 import numpy as np
+import networkx as nx
 
 import msts_algo
+import graph
+from program_files.graph import get_node_info
 
 # Find all machines capable of doing this operation
-def find_eligible_machines(operation, machines_array):
-    for machine in machines_array:
-        result = np.where(machine[2] == operation[2])
-        if result[0].size != 0:
+def find_eligible_machines(operation, machines_graph):
+    # Gets nodes with attributes 'tasks'
+    res = nx.get_node_attributes(machines_graph, 'tasks')
+    #print(res)
+
+    # Finds machines with 
+    for machine, tasks in res.items():
+        idx = np.where(tasks == operation[2])
+        if idx[0].size != 0:
+            #print("This machine", key, "has value", val[idx] , "with index", idx[0])
+            print(graph.get_node_info(machines_graph, machine))
             yield machine
 
 # Calculate machining time for specific operation-machine combination
@@ -22,6 +32,7 @@ def get_transition_time(operation, machine, trans_time):
 # Append operation to the machine's schedule and,
 # Store machine in operation's mach_num variable    <~ REWORD?
 def assign_machine_to_operation(operation, machine, trans_time):
+    # TODO: Add operation to machine's schedule
     pass
 
 
@@ -40,12 +51,12 @@ def assign_machine_to_operation(operation, machine, trans_time):
 ############################################################
 
 # Randomly assign machine to all operations
-def run_random(jobs_array, machines_array, trans_time):
+def run_random(jobs_array, machine_graph, trans_time):
     for job in jobs_array:
         print(job)
         for operation in job:
             #eligible_machines = []
-            eligible_machines = list(find_eligible_machines(operation, machines_array))
+            eligible_machines = list(find_eligible_machines(operation, machine_graph))
             #print("Eligible Machine for Operation:", operation[1], operation[2])
             #print(eligible_machines)
             if len(eligible_machines) > 1:
@@ -56,18 +67,20 @@ def run_random(jobs_array, machines_array, trans_time):
                 #print("Length = 1")
                 machine = eligible_machines[0]
 
-            
-            # CALL ASSIGN_MACHINE_TO_OPERATION(operation, machine, trans_time)
+
+            # TODO: CALL ASSIGN_MACHINE_TO_OPERATION(operation, machine, trans_time)
 
             #operation[-1] = machine[0]
 
     return 1
 
 # Greedily assign machine to all operations
+# TODO
 def run_greedy(jobs_array, machines_array):
     pass
 
 # Use adapted Dijkstra's algorithm to assign machine with
 # shortest path for each job
+# TODO
 def run_shortest_path(jobs_array, machines_array):
     pass
