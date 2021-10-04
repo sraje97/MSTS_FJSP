@@ -15,69 +15,100 @@ def find_eligible_machines(operation, machines_graph):
     for machine, tasks in res.items():
         idx = np.where(tasks == operation[2])
         if idx[0].size != 0:
-            #print("This machine", key, "has value", val[idx] , "with index", idx[0])
-            print(graph.get_node_info(machines_graph, machine))
             yield machine
 
 # Calculate machining time for specific operation-machine combination
 # (MT = (PT * alpha) + (ST * beta))
-def calculate_machining_time(operation, machine):
-    return (operation[3] * machine[3]) + (operation[4] * machine[4])
+def calculate_machining_time(operation, machine_graph, machine):
+    return ((operation[3] * machine_graph.nodes[machine]['alpha']) + (operation[4] * machine_graph.nodes[machine]['beta']))
 
 # Get transition time from previous operation's machine to current
 # operation's machine
-def get_transition_time(operation, machine, trans_time):
-    pass
+def get_transition_time(machine_graph, machA, machB):
+    return machine_graph.edges[machA, machB]['weight']
 
 # Append operation to the machine's schedule and,
-# Store machine in operation's mach_num variable    <~ REWORD?
-def assign_machine_to_operation(operation, machine, trans_time):
-    # TODO: Add operation to machine's schedule
-    pass
+# Store machine in operation's "mach_num" variable
+def assign_machine_to_operation(operation, machine_graph, machine):
+    # Add machine label to operation
+    operation[-1] = str(machine)
 
+    # Add operation to machine/node's attribute
+    # Don't assign starting and finishing time yet
+    op_schedule = machine_graph.nodes[machine]['op_schedule']
+    op_schedule.append((operation[1], 0, 0))
 
-    #machining_time = calculate_machining_time(operation, machine)
-    """     
-    if len(machine[-1]) == 0:
-        mach_ST = 0
-        mach_FT = 0
-    else:
-        mach_ST = machine[-1][1]
-        mach_FT = machine[-1][2]
-    """
+    print("New:", op_schedule)
+
+    nx.set_node_attributes(machine_graph, {machine: {'op_schedule': op_schedule } } )
+
 
 ############################################################
 #               MACHINE ASSIGNMENT ALGORITHMS              #
 ############################################################
 
 # Randomly assign machine to all operations
-def run_random(jobs_array, machine_graph, trans_time):
+def run_random(jobs_array, machine_graph):
     for job in jobs_array:
         print(job)
         for operation in job:
-            #eligible_machines = []
+            # Get list of all eligible machines
             eligible_machines = list(find_eligible_machines(operation, machine_graph))
-            #print("Eligible Machine for Operation:", operation[1], operation[2])
-            #print(eligible_machines)
+            #print("Eligible Machines for Operation (", operation[1], operation[2], "):", eligible_machines)
+
             if len(eligible_machines) > 1:
-                #print("length > 2")
+                # Choose any random machine if more than one compatible machine
                 rnd_idx = np.random.choice(len(eligible_machines),size=1)
                 machine = eligible_machines[int(rnd_idx)]
             else:
-                #print("Length = 1")
+                # Choose the only eligible machine
                 machine = eligible_machines[0]
+            #print(machine)
 
-
-            # TODO: CALL ASSIGN_MACHINE_TO_OPERATION(operation, machine, trans_time)
-
-            #operation[-1] = machine[0]
+            # Assign the machine to the operation (and vice versa)
+            assign_machine_to_operation(operation, machine_graph, machine)
+            print(machine_graph.nodes[machine])
+            print(operation)
 
     return 1
 
-# Greedily assign machine to all operations
-# TODO
-def run_greedy(jobs_array, machines_array):
-    pass
+# Greedily assign machine to all operations using either 
+# FMT - Fastest Machining Time (default) or LMT - Longest Machining Time
+def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
+    for job in jobs_array:
+        print(job)
+        for operation in job:
+            # Get list of all eligible machines
+            eligible_machines = list(find_eligible_machines(operation, machine_graph))
+            #print("Eligible Machines for Operation (", operation[1], operation[2], "):", eligible_machines)
+
+            if greedy_type == "FMT":
+                # Use default FMT
+                minFMT = 999999
+                for machine in eligible_machines:
+                    # Calculate machining time for operation on each eligible machine
+                    machining_time = calculate_machining_time(operation, machine_graph, machine)
+                    print(machining_time)
+                    if machining_time < minFMT:
+                        # Assign the machine with FMT for operation
+                        minFMT = machining_time
+                        best_machine = machine
+            else:
+                # Use LMT
+                maxFMT = 0
+                for machine in eligible_machines:
+                    machining_time = calculate_machining_time(operation, machine_graph, machine)
+                    print(machining_time)
+                    if machining_time > maxFMT:
+                        # Assign the machine with LMT for operation
+                        maxFMT = machining_time
+                        best_machine = machine
+            
+            assign_machine_to_operation(operation, machine_graph, best_machine)
+            print("Best machine...")
+            print(machine_graph.nodes[best_machine])
+
+    return 1
 
 # Use adapted Dijkstra's algorithm to assign machine with
 # shortest path for each job

@@ -49,9 +49,8 @@ for i in range(len(t_times_array)):
 
 MG.add_weighted_edges_from(weight_edges_list)
 print(MG.edges.data())
-
-
-'''
+print(MG.edges[marr, marr2]['weight'])
+"""
 print("Testing")
 print(graph.get_node_info(MG, 'M1'))
 print(graph.get_node_info(MG, 'M2'))
@@ -67,5 +66,14 @@ for key, val in res.items():
     x = np.where(val == "Drilling")
     if x[0].size != 0:
             print("This machine", key, "has value", val[x] , "with index", x[0])
+            elg_mach.append(key)
     print("Xx")
-'''
+#print(elg_mach[0])
+
+
+#nx.set_node_attributes(MG, {elg_mach[0]:{'op_schedule':("O11", 0, 705)}})
+print("Node info M1")
+#print(graph.get_node_info(MG, 'M1'))
+MG.nodes[elg_mach[0]]['op_schedule'] = ("O11", 0, 705)
+print(MG.nodes['M1'])
+"""

@@ -28,7 +28,7 @@ def msts():
     num_jobs = 2
     num_diff_machines = 4
     machine_types = {'Mill' : None, 'Lathe' : None, 'Drill' : None, 'Bore' : None, 'Hone' : None, 'Broach': None}
-    algo_choice = "random"
+    algo_choice = "greedy"
 
     # Initialise as empty array/list
     jobs_array = []
@@ -85,7 +85,7 @@ def msts():
     print("Printing Node")
     print(graph.get_node_info(G, 'M1'))
 
-    """
+    
     ############################################################
     #                   INITIAL SOLUTION                       #
     ############################################################
@@ -97,17 +97,20 @@ def msts():
     # Random machine assignment
     if algo_choice.lower() == 'random':
         print(algo_choice)
-        x = machine_assignment_algo.run_random(jobs_array, G, t_times_df)
-    
+        x = machine_assignment_algo.run_random(jobs_array, G)
+        print("Return X", x)
+        print(graph.get_graph_info(G))
     # Greedy machine assignment
     elif algo_choice.lower() == 'greedy':
         print(algo_choice)
-    
+        x = machine_assignment_algo.run_greedy(jobs_array, G, "FMT")
+        print("Return X", x)
+        print(graph.get_graph_info(G))
     # Shortest Path machine assignment
     else:
         print(algo_choice)
 
-    """
+    
 
 
 # Begin program here
