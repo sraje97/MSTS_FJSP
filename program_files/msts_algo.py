@@ -46,9 +46,6 @@ def msts():
         #print(temp_job)
         jobs_array.append(temp_job)
 
-    #print("Printing Job Array:")
-    #print(jobs_array)
-
     ## IMPORT MACHINES ##
     filepath = base_dir + 'data\Machines_Data.xlsx'
     machine_df = import_data.import_machine_data(filepath)

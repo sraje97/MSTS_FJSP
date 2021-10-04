@@ -32,11 +32,11 @@ t_times_array = t_times_df.to_numpy()
 print(t_times_array)
 print(col_names)
 
-for i in range(2):
-    graph.add_node(MG, marr)
-    graph.add_node(MG, marr2)
-    graph.add_node(MG, marr3)
-    graph.add_node(MG, marr4)
+
+graph.add_node(MG, marr)
+graph.add_node(MG, marr2)
+graph.add_node(MG, marr3)
+graph.add_node(MG, marr4)
 
 weight_edges_list = []
 
@@ -49,7 +49,7 @@ for i in range(len(t_times_array)):
 
 MG.add_weighted_edges_from(weight_edges_list)
 print(MG.edges.data())
-print(MG.edges[marr, marr2]['weight'])
+print(MG.edges[marr[0], marr2[0]]['weight'])
 """
 print("Testing")
 print(graph.get_node_info(MG, 'M1'))
