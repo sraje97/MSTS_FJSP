@@ -20,7 +20,7 @@ def find_eligible_machines(operation, machines_graph):
 # Calculate machining time for specific operation-machine combination
 # (MT = (PT * alpha) + (ST * beta))
 def calculate_machining_time(operation, machine_graph, machine):
-    return ((operation[3] * machine_graph.nodes[machine]['alpha']) + (operation[4] * machine_graph.nodes[machine]['beta']))
+    return round(((operation[3] * machine_graph.nodes[machine]['alpha']) + (operation[4] * machine_graph.nodes[machine]['beta'])), -1)
 
 # Get transition time from previous operation's machine to current
 # operation's machine
@@ -38,8 +38,6 @@ def assign_machine_to_operation(operation, machine_graph, machine):
     op_schedule = machine_graph.nodes[machine]['op_schedule']
     op_schedule.append((operation[1], 0, 0))
 
-    print("New:", op_schedule)
-
     nx.set_node_attributes(machine_graph, {machine: {'op_schedule': op_schedule } } )
 
 
@@ -50,7 +48,7 @@ def assign_machine_to_operation(operation, machine_graph, machine):
 # Randomly assign machine to all operations
 def run_random(jobs_array, machine_graph):
     for job in jobs_array:
-        print(job)
+        #print(job)
         for operation in job:
             # Get list of all eligible machines
             eligible_machines = list(find_eligible_machines(operation, machine_graph))
@@ -67,8 +65,8 @@ def run_random(jobs_array, machine_graph):
 
             # Assign the machine to the operation (and vice versa)
             assign_machine_to_operation(operation, machine_graph, machine)
-            print(machine_graph.nodes[machine])
-            print(operation)
+            #print(machine_graph.nodes[machine])
+            #print(operation)
 
     return 1
 
@@ -76,7 +74,7 @@ def run_random(jobs_array, machine_graph):
 # FMT - Fastest Machining Time (default) or LMT - Longest Machining Time
 def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
     for job in jobs_array:
-        print(job)
+        #print(job)
         for operation in job:
             # Get list of all eligible machines
             eligible_machines = list(find_eligible_machines(operation, machine_graph))
@@ -88,7 +86,7 @@ def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
                 for machine in eligible_machines:
                     # Calculate machining time for operation on each eligible machine
                     machining_time = calculate_machining_time(operation, machine_graph, machine)
-                    print(machining_time)
+                    #print(machining_time)
                     if machining_time < minFMT:
                         # Assign the machine with FMT for operation
                         minFMT = machining_time
@@ -98,15 +96,15 @@ def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
                 maxFMT = 0
                 for machine in eligible_machines:
                     machining_time = calculate_machining_time(operation, machine_graph, machine)
-                    print(machining_time)
+                    #print(machining_time)
                     if machining_time > maxFMT:
                         # Assign the machine with LMT for operation
                         maxFMT = machining_time
                         best_machine = machine
             
             assign_machine_to_operation(operation, machine_graph, best_machine)
-            print("Best machine...")
-            print(machine_graph.nodes[best_machine])
+            #print("Best machine...")
+            #print(machine_graph.nodes[best_machine])
 
     return 1
 

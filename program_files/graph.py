@@ -23,10 +23,18 @@ def get_graph_info(graph):
 def get_node_info(graph, node):
     return graph.nodes[node]
 
-# Get total number of nodes
-def get_num_of_nodes(graph):
-    return graph.number_of_nodes()
+# Clear particular node's data
+def clear_node_data(graph, node, attribute):
+    if attribute == 'op_schedule' or attribute == 'tasks':
+        graph.nodes[node][attribute] = []
+    else:
+        graph.nodes[node][attribute] = None
 
-# Get total number of edges
-def get_num_of_edges(graph):
-    return graph.number_of_edges()
+# Clear all node's particular attribute
+def clear_multiple_nodes_data(graph, attribute):
+    for i in range(nx.number_of_nodes(graph)):
+        node = "M" + str(i+1)
+        if attribute == 'op_schedule' or attribute == 'tasks':
+            graph.nodes[node][attribute] = []
+        else:
+            graph.nodes[node][attribute] = None
