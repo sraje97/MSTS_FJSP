@@ -1,7 +1,7 @@
 import sys
 import os
 
-from numpy import empty, random
+from numpy import empty, nan, random
 
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
@@ -26,16 +26,23 @@ jobs_array = []
 # BEGIN
 filepath = base_dir + 'data\Operations_Data_Testing.xlsx'
 operation_df = import_data.import_job_data(filepath)
+operation_df = operation_df.fillna('')
 
 for i in range(num_jobs):
     job_number = 'J' + str(i+1)
     temp_job = operation_df[operation_df['Job'] == job_number]
     temp_job = temp_job.to_numpy()
-    #print(temp_job)
+    for temp_op in temp_job:
+        # Convert parallel pre/succ operations to tuple
+        if ',' in temp_op[6]:
+            temp_op[6] = tuple(temp_op[6].split(','))
+        if ',' in temp_op[7]:
+            temp_op[7] = tuple(temp_op[7].split(','))
     jobs_array.append(temp_job)
 
 ## Assert Operations_Data.xlsx has been read
 assert (len(jobs_array) > 0), "No Jobs detected"
+print(jobs_array)
 
 ## IMPORT MACHINES ##
 filepath = base_dir + 'data\Machines_Data_Testing.xlsx'
@@ -77,6 +84,8 @@ assert elg_machs[0] == 'M1', "Eligible machine not found"
 
 mach_time = machine_assignment_algo.calculate_machining_time(operation, TG, elg_machs[0])
 assert mach_time == 410, "Incorrect value"
+
+edge_cost = machine_assignment_algo.get_transition_time(TG, elg_machs[0], machines_array[1][0])
 
 algo_choice = "random"
 x = machine_assignment_algo.run_random(jobs_array, TG)

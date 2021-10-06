@@ -43,7 +43,12 @@ def msts():
         job_number = 'J' + str(i+1)
         temp_job = operation_df[operation_df['Job'] == job_number]
         temp_job = temp_job.to_numpy()
-        #print(temp_job)
+        # Convert parallel pre/succ operations to tuple
+        if ',' in temp_job[6]:
+            temp_job[6] = tuple(temp_job[6].split(','))
+        if ',' in temp_job[7]:
+            temp_job[7] = tuple(temp_job[7].split(','))
+            
         jobs_array.append(temp_job)
 
     ## IMPORT MACHINES ##

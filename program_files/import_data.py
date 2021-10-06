@@ -9,6 +9,7 @@ def import_job_data(filename):
     # Read only columns A,B,C,H,I,J,K,L,M,N
     operation_data = pd.read_excel(filename, usecols="A,B,C,H,I,J,K,L,M,N", engine='openpyxl')
     #print(operation_data)
+    operation_data = operation_data.fillna('')
     return operation_data
 
 def import_machine_data(filename):
@@ -16,6 +17,7 @@ def import_machine_data(filename):
     # Read data from Sheet1 of Machine_Data file
     machine_data = pd.read_excel(filename, sheet_name='Sheet1', engine='openpyxl')
     #print(machine_data)
+    machine_data = machine_data.fillna('')
     return machine_data
 
 def import_transition_times(filename):
