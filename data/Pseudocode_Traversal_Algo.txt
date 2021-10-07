@@ -1,0 +1,116 @@
+DATA STRUCTURES:
+
+Input:
+Jobs List		{J1, J2, …, Jn}
+Operation Sequence 	{O1, O2, …, Oj}
+Operation		(Job_Num, Op_Num, “Task”, PT, ST, MT, Pre_Op, Succ_Op, S/P1/P2, Mach_Num)
+Machine	(Node)		(Mach_Num, [“Task1”, “Task2”, …], α (PT_Coef), β (ST_Coef), Op_Schedule)
+
+Computed:
+Op_Schedule		[(OpX1, TS1, TF1), (OpX2, TS2, TF2), …, (OpXZ, TSZ, TFZ)]
+Priority_Queue		[(OpX1, “M1M2MX”, TF), (OpX1, “M3M3MX”, TF), …]
+
+
+
+MACHINE ASSIGNMENT PSUEDOCODE:
+
+Dynamically changing(?)
+Prob_Rand = 0.35
+Prob_Greed = 0.35
+Prob_Novel = 0.30
+
+
+
+Random:	
+Randomly assign an eligible machine to the operation
+
+For job in jobsList:
+	For operation in job:
+		eligibleMachines = []
+		FindEligibleMachines(operation)				// Returns list of eligible machines
+		machine = random.choice(eligibleMachines)		// Choose one machine with random probability
+		machineList[machine].append(operation)			// Append operation to machine's schedule
+
+
+
+Greedy:
+Greedily assign the eligible machine with the quickest machining time to the operation
+
+For job in jobsList:
+	For operation in job:
+		eligibleMachines = []
+		FindEligibleMachines(operation)				// Returns list of eligible machines
+		For machine in eligibleMachines:
+			machine = getMinFMT/getMaxFMT			// Get machine with quickest/longest machining time for op
+		machineList[machine].append(operation)
+updateScheduleTimes(machines)
+
+
+Shortest Path (Adapted Dijkstra's Algorithm):
+Greedy heuristic to assign the quickest machines to operation over complete job path (sequential only)
+
+bestPaths = []
+For job in jobsList:
+	priorityQueue = []
+	finalBestNode = (None, None, inf)				// High number for min makespan. Pathseq = []
+
+	operation = job[0]						// First operation in sequence
+	FindEligibleMachines(operation)
+	For machine in eligibleMachines:
+		totTime = operation.PT * machine.alpha + operation.ST * machine.beta	// edge cost = 0
+		pathNode = (operation, machine.label, totTime)
+		priorityQueue.append(pathNode)
+
+	while priorityQueue is not empty:
+		bestNode = min(priorityQueue.totTime)			// Choose the node with smallest total time so far
+		priorityQueue.pop(bestNode)					// Remove node from list of nodes to branch
+		operation = bestNode[0].succ				// Get next operation in sequence after best node's operation	 # WORRY ABOUT TWO SUCC_OPs
+		prevMachine = bestNode[1][bestNode.rfind('M'):]		// Get last machine label in this path sequence. USE mach.rfind('M') and get letters after that
+		FindEligibleMachines(operation)				// Returns list of eligible machines
+
+		if operation.parallel == P2:				// Choose greedy method for parallel operations
+			For machine in eligibleMachines:
+				machine = getMinFMT/getMaxFMT		// Get machine with quickest/longest machining time for operation
+			machineList[machine].append(operation)
+
+		elif operation.succ is not nan:				// Use !(np.isnan(operation[6]))
+			For machine in eligibleMachines:
+				pathSeq = bestNode[1] + machine.label
+				edge_cost = distMatrix[prevMachineidx][machineidx]
+				totTime = bestNode[2] + operation.PT * machine.alpha + operation.ST * machine.beta + edge_cost
+				pathNode = (operation, pathSeq, totTime)
+				priorityQueue.append(pathNode)
+
+		else:
+			For machine in eligibleMachines:
+				pathSeq = bestNode[1] + machine.label
+				edge_cost = distMatrix[prevMachineidx][machineidx]
+				totTime = bestNode[2] + operation.PT * machine.alpha + operation.ST * machine.beta + edge_cost
+				pathNode = (operation, pathSeq, totTime)
+				if pathNode[2] < finalBestNode[2]:
+					finalBestNode = pathNode
+
+			tempList = [ (finalBestNode[0], finalBestNode[1][-3:]) ]
+			finalBestNode[1] = finalBestNode[1][:-3]	// Delete the last machine from path sequence. USE RFIND()
+
+			for idx in range(len(pathSeq)/3):		// Each machine label is 3 characters
+				lastMachine = finalBestNode[1][-3:]	// Get last machine label in this path sequence
+				lastOperation = finalBestNode[0].pre
+
+				if lastOperation is tuple:
+					lastOperation = lastOperation[0]		// Always keep 1st index as S/P1 and 2nd index as P2
+					tempList.append((lastOperation, lastMachine))	// Add operation and machine to temp list
+					finalBestNode[0] = lastOperation		// Update the operation in finalBestNode
+					finalBestNode[1] = finalBestNode[1][:-3]	// Delete the last machine from path sequence
+				elif lastOperation is not None:
+					tempList.append((lastOperation, lastMachine))	// Add operation and machine to temp list
+					finalBestNode[0] = lastOperation		// Update the operation in finalBestNode
+					finalBestNode[1] = finalBestNode[1][:-3]	// Delete the last machine from path sequence
+
+				else:							// Might not need this case!!!
+
+			for ele in reversed(tempList):
+				machineList[ele[1]].append(ele[0])			// Assign operation to machine in reverse order
+			break
+
+total_time()

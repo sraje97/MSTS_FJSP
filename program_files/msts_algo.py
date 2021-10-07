@@ -28,7 +28,7 @@ def msts():
     num_jobs = 2
     num_diff_machines = 4
     machine_types = {'Mill' : None, 'Lathe' : None, 'Drill' : None, 'Bore' : None, 'Hone' : None, 'Broach': None}
-    algo_choice = "greedy"
+    algo_choice = "Shortest Path"
 
     # Initialise as empty array/list
     jobs_array = []
@@ -43,11 +43,13 @@ def msts():
         job_number = 'J' + str(i+1)
         temp_job = operation_df[operation_df['Job'] == job_number]
         temp_job = temp_job.to_numpy()
+
         # Convert parallel pre/succ operations to tuple
-        if ',' in temp_job[6]:
-            temp_job[6] = tuple(temp_job[6].split(','))
-        if ',' in temp_job[7]:
-            temp_job[7] = tuple(temp_job[7].split(','))
+        for temp_op in temp_job:
+            if ',' in temp_op[6]:
+                temp_op[6] = tuple(temp_op[6].split(','))
+            if ',' in temp_op[7]:
+                temp_op[7] = tuple(temp_op[7].split(','))
             
         jobs_array.append(temp_job)
 
@@ -111,7 +113,9 @@ def msts():
     # Shortest Path machine assignment
     else:
         print(algo_choice)
-
+        x = machine_assignment_algo.run_shortest_path(jobs_array, G)
+        print("Return X:", x)
+        print(graph.get_graph_info(G))
     
 
 
