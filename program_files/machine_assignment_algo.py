@@ -12,7 +12,6 @@ bigM = 999_999
 def find_eligible_machines(operation, machine_graph):
     # Gets nodes with attributes 'tasks'
     res = nx.get_node_attributes(machine_graph, 'tasks')
-    #print(res)
 
     # Finds machines with 
     for machine, tasks in res.items():
@@ -34,7 +33,7 @@ def get_transition_time(machine_graph, machA, machB):
 # Store machine in operation's "mach_num" variable
 def assign_machine_to_operation(operation, machine_graph, machine):
     # Add machine label to operation
-    operation[-1] = str(machine)
+    operation[-2] = str(machine)
 
     # Add operation to machine/node's attribute
     # Don't assign starting and finishing time yet
@@ -128,11 +127,9 @@ def assign_parallel_operation_pre(job_array, op_num, machine_graph):
 # Randomly assign machine to all operations
 def run_random(jobs_array, machine_graph):
     for job in jobs_array:
-        #print(job)
         for operation in job:
             # Get list of all eligible machines
             eligible_machines = list(find_eligible_machines(operation, machine_graph))
-            #print("Eligible Machines for Operation (", operation[1], operation[2], "):", eligible_machines)
 
             if len(eligible_machines) > 1:
                 # Choose any random machine if more than one compatible machine
@@ -141,24 +138,18 @@ def run_random(jobs_array, machine_graph):
             else:
                 # Choose the only eligible machine
                 machine = eligible_machines[0]
-            #print(machine)
 
             # Assign the machine to the operation (and vice versa)
             assign_machine_to_operation(operation, machine_graph, machine)
-            #print(machine_graph.nodes[machine])
-            #print(operation)
-
     return 1
 
 # Greedily assign machine to all operations using either 
 # FMT - Fastest Machining Time (default) or LMT - Longest Machining Time
 def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
     for job in jobs_array:
-        #print(job)
         for operation in job:
             # Get list of all eligible machines
             eligible_machines = list(find_eligible_machines(operation, machine_graph))
-            #print("Eligible Machines for Operation (", operation[1], operation[2], "):", eligible_machines)
 
             if greedy_type == "FMT":
                 # Use default FMT
@@ -168,15 +159,12 @@ def run_greedy(jobs_array, machine_graph, greedy_type = "FMT"):
                 maxFMT = 0
                 for machine in eligible_machines:
                     machining_time = calculate_machining_time(operation, machine_graph, machine)
-                    #print(machining_time)
+
                     if machining_time > maxFMT:
                         # Assign the machine with LMT for operation
                         maxFMT = machining_time
                         best_machine = machine
                 assign_machine_to_operation(operation, machine_graph, best_machine)
-            #print("Best machine...")
-            #print(machine_graph.nodes[best_machine])
-
     return 1
 
 # Use adapted Dijkstra's algorithm to assign machine with shortest path for each job
@@ -184,6 +172,8 @@ def run_shortest_path(jobs_array, machine_graph):
     for job in jobs_array:
         # Create priority queue for node/tuple (operation, path sequence, total time)
         priority_queue = []
+        # Keep list of processed P2 operations
+        processed_P2_operations = []
         # Use to store best final node
         best_final_node = (None, None, bigM)
 
@@ -214,10 +204,13 @@ def run_shortest_path(jobs_array, machine_graph):
             if type(op_succ) is tuple:
                 # Get the P2 operation - P2 operation after P1 operation in tuple
                 op_P2_succ = op_succ[1]
+                
+                if op_P2_succ not in processed_P2_operations:
+                    processed_P2_operations.append(op_P2_succ)
 
-                # Assign the P2 operation to a machine
-                assign_parallel_operation_succ(job, op_P2_succ, machine_graph)
-                # Get the P! operation of the tuple
+                    # Assign the P2 operation to a machine
+                    assign_parallel_operation_succ(job, op_P2_succ, machine_graph)
+                    # Get the P1 operation of the tuple
                 op_succ = op_succ[0]
 
             operation = [item for item in job if item[1] == op_succ][0]
@@ -227,9 +220,11 @@ def run_shortest_path(jobs_array, machine_graph):
             # Assign any previous parallel P2 operations (before assembly/join)
             if type(op_pre) is tuple:
                 op_P2_pre = op_pre[1]
+                if op_P2_pre not in processed_P2_operations:
+                    processed_P2_operations.append(op_P2_pre)
 
-                # Assign the P2 operation to a machine
-                assign_parallel_operation_pre(job, op_P2_pre, machine_graph)
+                    # Assign the P2 operation to a machine
+                    assign_parallel_operation_pre(job, op_P2_pre, machine_graph)
 
             # Add operations - bar the final operations of each job - to the priority queue
             if operation[7] != '':
@@ -288,7 +283,6 @@ def run_shortest_path(jobs_array, machine_graph):
                 # Assign machine and operation through the back propagated assignment list
                 for element in reversed(assignment_list):
                     assign_machine_to_operation(element[0], machine_graph, element[1])
-
                 break
     return 1
 

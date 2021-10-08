@@ -15,3 +15,4 @@ class Operation:
         self.succ = op_array[7]
         self.series = op_array[8]
         self.mach_num = None
+        self.finish_time = 0

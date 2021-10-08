@@ -6,8 +6,8 @@ pd.set_option('display.max_columns', None)
 
 def import_job_data(filename):
 
-    # Read only columns A,B,C,H,I,J,K,L,M,N
-    operation_data = pd.read_excel(filename, usecols="A,B,C,H,I,J,K,L,M,N", engine='openpyxl')
+    # Read only columns A,B,C,H,I,J,K,L,M,N,O
+    operation_data = pd.read_excel(filename, usecols="A,B,C,H,I,J,K,L,M,N,O", engine='openpyxl')
     #print(operation_data)
     operation_data = operation_data.fillna('')
     return operation_data
