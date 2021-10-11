@@ -73,10 +73,10 @@ def schedule_SMT(jobs_array, machine_graph):
 		machining_time = machine_assignment_algo.calculate_machining_time(operation, machine_graph, operation[-2])
 		next_executable_operations.append((operation, machining_time))
 
-	while len(next_executable_operations) > 0:
+	while next_executable_operations:
 		operation = get_SMT(next_executable_operations)[0]
 		job_array = jobs_array[int(operation[0][1:]) - 1]
-
+		
 		if operation[6] == '':
 			start_time = get_start_time(job_array, operation, '', machine_graph)
 			schedule_operation(operation, machine_graph, '', start_time)
@@ -94,8 +94,10 @@ def schedule_SMT(jobs_array, machine_graph):
 					prev_operation = op_P2_pre
 				start_time = get_start_time(job_array, operation, prev_operation, machine_graph)
 				schedule_operation(operation, machine_graph, prev_operation[-2], start_time)
-        else:
-            pass
+			else:
+				break
+		else:
+			break
             # SOME BREAK CONDITION MAYBE?
         scheduled_operations.append(operation[1])
         next_executable_operations = add_next_executable_operation(job_array, operation, machine_graph, next_executable_operations)

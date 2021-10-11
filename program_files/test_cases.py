@@ -18,6 +18,7 @@ import pandas as pd
 import graph
 import import_data
 import machine_assignment_algo
+from operation import Operation
 
 # INPUTS
 num_jobs = 2
@@ -30,19 +31,24 @@ operation_df = operation_df.fillna('')
 
 for i in range(num_jobs):
     job_number = 'J' + str(i+1)
+    new_job = []
     temp_job = operation_df[operation_df['Job'] == job_number]
     temp_job = temp_job.to_numpy()
-    for temp_op in temp_job:
+    for j in range(len(temp_job)):
         # Convert parallel pre/succ operations to tuple
-        if ',' in temp_op[6]:
-            temp_op[6] = tuple(temp_op[6].split(','))
-        if ',' in temp_op[7]:
-            temp_op[7] = tuple(temp_op[7].split(','))
-    jobs_array.append(temp_job)
+        if ',' in temp_job[j][6]:
+            temp_job[j][6] = tuple(temp_job[j][6].split(','))
+        if ',' in temp_job[j][7]:
+            temp_job[j][7] = tuple(temp_job[j][7].split(','))
+        op = Operation(temp_job[j])
+        new_job.append(op)
+        #print(new_job)
+        #print(new_job[j].op_num, new_job[j].task)
+    jobs_array.append(new_job)
+#print(jobs_array)
 
 ## Assert Operations_Data.xlsx has been read
 assert (len(jobs_array) > 0), "No Jobs detected"
-print(jobs_array)
 
 ## IMPORT MACHINES ##
 filepath = base_dir + 'data\Machines_Data_Testing.xlsx'
@@ -63,6 +69,12 @@ t_times_array = t_times_df.to_numpy()
 
 ## Assert transition times from Machines_Data.xlsx has been read
 assert len(t_times_array) > 0, "No transition time matrix detected"
+
+
+
+op_P2_pre = 'O11'
+operation = [item for item in jobs_array[0] if item.op_num == op_P2_pre][0]
+
 
 ## INITIALISE GRAPH ##
 TG = nx.Graph()
