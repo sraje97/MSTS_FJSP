@@ -8,7 +8,7 @@ def get_SMT(operations):
 	return min(operations, key=operator.itemgetter(1))
 
 def get_LRMT(operations):
-	return min(operations, key=operator.itemgetter(1))
+	return max(operations, key=operator.itemgetter(1))
 
 
 def get_machine_finish_time(op_schedule):
