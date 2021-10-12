@@ -17,6 +17,8 @@ import networkx as nx
 import import_data
 import machine_assignment_algo
 import graph
+import operation_scheduling
+from operation import Operation
 
 def msts():
 
@@ -28,7 +30,8 @@ def msts():
     num_jobs = 2
     num_diff_machines = 4
     machine_types = {'Mill' : None, 'Lathe' : None, 'Drill' : None, 'Bore' : None, 'Hone' : None, 'Broach': None}
-    algo_choice = "Shortest Path"
+    MA_algo_choice = "Shortest Path"
+    OS_algo_choice = "SMT"
 
     # Initialise as empty array/list
     jobs_array = []
@@ -40,16 +43,19 @@ def msts():
 
     # Split each job to store independently in jobsArray
     for i in range(num_jobs):
+        new_job = []
         job_number = 'J' + str(i+1)
         temp_job = operation_df[operation_df['Job'] == job_number]
         temp_job = temp_job.to_numpy()
 
         # Convert parallel pre/succ operations to tuple
-        for temp_op in temp_job:
-            if ',' in temp_op[6]:
-                temp_op[6] = tuple(temp_op[6].split(','))
-            if ',' in temp_op[7]:
-                temp_op[7] = tuple(temp_op[7].split(','))
+        for j in range(len(temp_job)):
+            if ',' in temp_job[j][6]:
+                temp_job[j][6] = tuple(temp_job[j][6].split(','))
+            if ',' in temp_job[j][7]:
+                temp_job[j][7] = tuple(temp_job[j][7].split(','))
+            op = Operation(temp_job[j])
+            new_job.append(op)
             
         jobs_array.append(temp_job)
 
@@ -95,29 +101,40 @@ def msts():
     ############################################################
 
     # If machine assignment algorithm not pre-specified, choose randomly
-    if algo_choice == "":
-        algo_choice = np.random.choice(['Random', 'Greedy', 'Shortest Path'], p=[0.35, 0.35, 0.3])
+    if MA_algo_choice == "":
+        MA_algo_choice = np.random.choice(['Random', 'Greedy', 'Shortest Path'], p=[0.35, 0.35, 0.3])
 
     # Random machine assignment
-    if algo_choice.lower() == 'random':
-        print(algo_choice)
+    if MA_algo_choice.lower() == 'random':
+        print(MA_algo_choice)
         x = machine_assignment_algo.run_random(jobs_array, G)
-        print("Return X", x)
+        print("Return Random", x)
         print(graph.get_graph_info(G))
     # Greedy machine assignment
-    elif algo_choice.lower() == 'greedy':
-        print(algo_choice)
+    elif MA_algo_choice.lower() == 'greedy':
+        print(MA_algo_choice)
         x = machine_assignment_algo.run_greedy(jobs_array, G, "FMT")
-        print("Return X", x)
+        print("Return Greedy", x)
         print(graph.get_graph_info(G))
     # Shortest Path machine assignment
     else:
-        print(algo_choice)
+        print(MA_algo_choice)
         x = machine_assignment_algo.run_shortest_path(jobs_array, G)
-        print("Return X:", x)
+        print("Return Shortest Path:", x)
         print(graph.get_graph_info(G))
     
+    ############################################################
+    #                   OPERATION SCHEDULING                   #
+    ############################################################
 
+    if OS_algo_choice == '':
+        OS_algo_choice = np.random.choice(['SMT', 'LRMT', 'ERT']) #, p=[0.35, 0.35, 0.3])
+
+    if OS_algo_choice == "SMT":
+        print(OS_algo_choice)
+        y = operation_scheduling.schedule_SMT
+        print("Return Shortest Path:", y)
+        print(graph.get_graph_info(G))
 
 # Begin program here
 if __name__ == '__main__':

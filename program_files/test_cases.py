@@ -71,12 +71,6 @@ t_times_array = t_times_df.to_numpy()
 ## Assert transition times from Machines_Data.xlsx has been read
 assert len(t_times_array) > 0, "No transition time matrix detected"
 
-
-
-op_P2_pre = 'O11'
-operation = [item for item in jobs_array[0] if item.op_num == op_P2_pre][0]
-
-
 ## INITIALISE GRAPH ##
 TG = nx.Graph()
 for i in range(len(machines_array)):
@@ -133,4 +127,19 @@ print(TG.nodes.data())
 
 y = operation_scheduling.schedule_SMT(jobs_array, TG)
 print("Schedule Operation SMT")
+print(TG.nodes.data())
+
+graph.clear_multiple_nodes_data(TG, 'op_schedule')
+print("Clear:")
+print(TG.nodes.data())
+assert TG.nodes[elg_machs[0]]['op_schedule'] == [], "Clearing attribute data failed"
+
+x = machine_assignment_algo.run_shortest_path(jobs_array, TG)
+sp_op_sched = TG.nodes[elg_machs[0]]['op_schedule']
+assert len(sp_op_sched) > 0, "No schedule detected"
+print("Shortest Path Algorithm")
+print(TG.nodes.data())
+
+y = operation_scheduling.schedule_LRMT(jobs_array, TG)
+print("Schedule Operation LRMT")
 print(TG.nodes.data())
