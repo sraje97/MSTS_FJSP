@@ -18,6 +18,7 @@ import pandas as pd
 import graph
 import import_data
 import machine_assignment_algo
+import operation_scheduling
 from operation import Operation
 
 # INPUTS
@@ -99,7 +100,7 @@ assert mach_time == 410, "Incorrect value"
 
 edge_cost = machine_assignment_algo.get_transition_time(TG, elg_machs[0], machines_array[1][0])
 
-algo_choice = "random"
+"""
 x = machine_assignment_algo.run_random(jobs_array, TG)
 random_op_sched = TG.nodes[elg_machs[0]]['op_schedule']
 assert len(random_op_sched) > 0, "No schedule detected"
@@ -117,4 +118,19 @@ greedy_op_sched = TG.nodes[elg_machs[0]]['op_schedule']
 assert greedy_op_sched[0] == ("O11", 0, 0), "Wrong operation assigned to machine"
 
 print("Greedy Algorithm:")
+print(TG.nodes.data())
+
+graph.clear_multiple_nodes_data(TG, 'op_schedule')
+print("Clear:")
+print(TG.nodes.data())
+assert TG.nodes[elg_machs[0]]['op_schedule'] == [], "Clearing attribute data failed"
+"""
+x = machine_assignment_algo.run_shortest_path(jobs_array, TG)
+sp_op_sched = TG.nodes[elg_machs[0]]['op_schedule']
+assert len(sp_op_sched) > 0, "No schedule detected"
+print("Shortest Path Algorithm")
+print(TG.nodes.data())
+
+y = operation_scheduling.schedule_SMT(jobs_array, TG)
+print("Schedule Operation SMT")
 print(TG.nodes.data())
