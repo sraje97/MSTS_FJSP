@@ -22,7 +22,7 @@ import operation_scheduling
 from operation import Operation
 
 # INPUTS
-num_jobs = 2
+num_jobs = 3
 jobs_array = []
 
 # BEGIN
@@ -90,7 +90,7 @@ assert len(elg_machs) > 0, "No eligible machines found"
 assert elg_machs[0] == 'M1', "Eligible machine not found"
 
 mach_time = machine_assignment_algo.calculate_machining_time(operation, TG, elg_machs[0])
-assert mach_time == 410, "Incorrect value"
+assert mach_time == 413, "Incorrect value"
 
 edge_cost = machine_assignment_algo.get_transition_time(TG, elg_machs[0], machines_array[1][0])
 
@@ -135,11 +135,16 @@ print(TG.nodes.data())
 assert TG.nodes[elg_machs[0]]['op_schedule'] == [], "Clearing attribute data failed"
 
 x = machine_assignment_algo.run_shortest_path(jobs_array, TG)
-sp_op_sched = TG.nodes[elg_machs[0]]['op_schedule']
-assert len(sp_op_sched) > 0, "No schedule detected"
-print("Shortest Path Algorithm")
-print(TG.nodes.data())
-
 y = operation_scheduling.schedule_LRMT(jobs_array, TG)
 print("Schedule Operation LRMT")
+print(TG.nodes.data())
+
+graph.clear_multiple_nodes_data(TG, 'op_schedule')
+print("Clear:")
+print(TG.nodes.data())
+assert TG.nodes[elg_machs[0]]['op_schedule'] == [], "Clearing attribute data failed"
+
+x = machine_assignment_algo.run_shortest_path(jobs_array, TG)
+y = operation_scheduling.schedule_ERT(jobs_array, TG)
+print("Schedule Operation ERT")
 print(TG.nodes.data())

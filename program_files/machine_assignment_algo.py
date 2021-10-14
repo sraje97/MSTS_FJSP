@@ -22,7 +22,7 @@ def find_eligible_machines(operation, machine_graph):
 # Calculate machining time for specific operation-machine combination
 # (MT = (PT * alpha) + (ST * beta))
 def calculate_machining_time(operation, machine_graph, machine):
-    return round(((operation.processing_time * machine_graph.nodes[machine]['alpha']) + (operation.setup_time * machine_graph.nodes[machine]['beta'])), -1)
+    return round( ( (operation.processing_time * machine_graph.nodes[machine]['alpha']) + (operation.setup_time * machine_graph.nodes[machine]['beta']) ) )
 
 # Get transition time from previous operation's machine to current
 # operation's machine
