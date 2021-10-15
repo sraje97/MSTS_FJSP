@@ -1,0 +1,57 @@
+epochs = 100
+
+methods = ["swap machine", "swap order", "SPO", "MSPO"]
+curr_solution = deepcopy(init_solution)
+Ceni = 0
+Ceni_max = 100??
+local_best_makespan = get_makespan(curr_solution)
+best_makespan = get_makespan(curr_solution)
+p_exp_con = 1.0
+
+while e < epochs:
+	prev_solution = curr_solution
+
+	choose random operation
+
+	choose one of four swap methods
+
+	conduct that swap operation
+	fix the schedule!?						# Would you rather spend time fixing it or searching?
+
+	calculate makespan
+
+	if makespan < local_best_makespan:
+		local_best_solution = curr_solution
+		local_best_makespan = makespan
+
+		if tabu_tuple in tabu list:
+			delete tabu_tuple
+		add tabu_tuple in tabu list
+
+		Ceni = 0
+	else:
+		Ceni += 1
+		curr_solution = prev_solution		# Revert changes
+
+	for tabu_tuple in tabu_list:
+		decrement tabu's tenure by 1
+		if tabu_tenure == 0
+			remove from tabu_list
+
+
+	if Ceni == Ceni_max:
+		p = random.random()
+
+		if local_best_makespan < global_best_makespan:
+			global_best_solution = local_best_solution
+			global_best_makespan = local_best_makespan
+
+		if p < p_exp_con:
+			generate new solution
+		else:
+			curr_solution = global_best_solution
+
+		p_exp_con -= exp decay
+		e += 1
+
+return global_best_solution, global_best_makespan

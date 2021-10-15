@@ -3,7 +3,6 @@ import networkx as nx
 import operator
 import copy
 
-import graph
 from program_files.graph import get_node_info
 
 bigM = 999_999

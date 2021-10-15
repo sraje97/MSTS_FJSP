@@ -10,7 +10,6 @@ sys.path.append(os.path.join(base_dir, 'data'))
 
 ## IMPORT PYTHON PACKAGES
 import numpy as np
-import pandas as pd
 import networkx as nx
 
 ## IMPORT OUR MODULES
@@ -27,9 +26,8 @@ def msts():
     ############################################################
 
     # TODO: Get as inputs
-    num_jobs = 2
+    num_jobs = 3
     num_diff_machines = 4
-    machine_types = {'Mill' : None, 'Lathe' : None, 'Drill' : None, 'Bore' : None, 'Hone' : None, 'Broach': None}
     MA_algo_choice = "Shortest Path"
     OS_algo_choice = "SMT"
 
@@ -40,6 +38,7 @@ def msts():
     # Read data from excel file and store in DataFrame
     filepath = base_dir + 'data\Operations_Data.xlsx'
     operation_df = import_data.import_job_data(filepath)
+    operation_df = operation_df.fillna('')
 
     # Split each job to store independently in jobsArray
     for i in range(num_jobs):
@@ -56,27 +55,26 @@ def msts():
                 temp_job[j][7] = tuple(temp_job[j][7].split(','))
             op = Operation(temp_job[j])
             new_job.append(op)
-            
-        jobs_array.append(temp_job)
+
+        jobs_array.append(new_job)
 
     ## IMPORT MACHINES ##
     filepath = base_dir + 'data\Machines_Data.xlsx'
     machine_df = import_data.import_machine_data(filepath)
-    
+
     # Convert dataframe to numpy array
     machines_array = machine_df.to_numpy()
 
-    print("Printing Machines")
+    #print("Printing Machines")
     # Convert machine capabilities into array of strings
     # And set operation schedule to be an array
     for i in range(len(machines_array)):
         machines_array[i][2] = machines_array[i][2].split(',')
         machines_array[i][2] = np.array(machines_array[i][2])
         machines_array[i][-1] = []
-        print(machines_array[i])
+        #print(machines_array[i])
 
     ## IMPORT TRANISITION TIMES ##
-    #global t_times_df
     t_times_df = import_data.import_transition_times(filepath)
     col_names = list(t_times_df.columns)
     t_times_array = t_times_df.to_numpy()
@@ -89,13 +87,13 @@ def msts():
     
     graph.add_edge_costs(G, t_times_array, col_names)
 
-    print("Printing Graph")
-    print(graph.get_graph_info(G))
+    #print("Printing Graph")
+    #print(graph.get_graph_info(G))
 
-    print("Printing Node")
-    print(graph.get_node_info(G, 'M1'))
+    #print("Printing Node")
+    #print(graph.get_node_info(G, 'M1'))
 
-    
+
     ############################################################
     #                   INITIAL SOLUTION                       #
     ############################################################
@@ -132,8 +130,18 @@ def msts():
 
     if OS_algo_choice == "SMT":
         print(OS_algo_choice)
-        y = operation_scheduling.schedule_SMT
-        print("Return Shortest Path:", y)
+        y = operation_scheduling.schedule_SMT(jobs_array, G)
+        print("Return SMT Schedule:", y)
+        print(graph.get_graph_info(G))
+    elif OS_algo_choice == "LRMT":
+        print(OS_algo_choice)
+        y = operation_scheduling.schedule_LRMT(jobs_array, G)
+        print("Return LRMT Schedule:", y)
+        print(graph.get_graph_info(G))
+    else:
+        print(OS_algo_choice)
+        y = operation_scheduling.schedule_ERT(jobs_array, G)
+        print("Return ERT Schedule:", y)
         print(graph.get_graph_info(G))
 
 # Begin program here

@@ -40,11 +40,12 @@ def get_total_remaining_time(job_array, op=None):
 	total_time = 0
 
 	if op == None:		
-		# Sume up all operation's machine times in a job
+		# Sum up all operation's machine times in a job
 		for op in job_array:
 			total_time += op.machining_time
 		return total_time
 	else:
+		# If operation is specified, sum up total machining time from operation
 		while op.succ != '':
 			total_time += op.machining_time
 			if type(op.succ) is tuple:
@@ -55,14 +56,14 @@ def get_total_remaining_time(job_array, op=None):
 		total_time += op.machining_time
 		return total_time
 
-
+# Check if operation is in the executable operations list
 def get_flag(operation, executable_operations_list):
 	for item in executable_operations_list:
 		if operation == item[0]:
 			return True
 	return False
 
-
+# Helper function to append operation, operation's machine, and specified time to executable operations list
 def append_operation_tuple(job_array, operation, machine_graph, executable_operations_list, algo_choice):
 	# Get machining time for current operation
 	machining_time = machine_assignment_algo.calculate_machining_time(operation, machine_graph, operation.mach_num)
@@ -78,7 +79,6 @@ def append_operation_tuple(job_array, operation, machine_graph, executable_opera
 		release_time = operation.finish_time
 		executable_operations_list.append((operation, release_time))
 	return executable_operations_list
-
 
 
 # Schedule an operation on the machine (add start and finish time on machine schedule)
@@ -155,20 +155,7 @@ def add_next_executable_operation(job_array, operation, machine_graph, executabl
 		# If multiple successive operations, add both operations to the list
 		for op in op_succ:
 			succ_operation = [item for item in job_array if item.op_num == op][0]
-
 			executable_operations_list = append_operation_tuple(job_array, succ_operation, machine_graph, executable_operations_list, algo_choice)
-
-#			machining_time = machine_assignment_algo.calculate_machining_time(succ_operation, machine_graph, succ_operation.mach_num)
-#			
-#			# Depending on the scheduling algorithm, add either machining/remaining/release time
-#			if algo_choice == "SMT":
-#				executable_operations_list.append((succ_operation, machining_time))
-#			elif algo_choice == "LRMT":
-#				remaining_time -= machining_time
-#				executable_operations_list.append((succ_operation, remaining_time))
-#			else:
-#				release_time = operation.finish_time
-#				executable_operations_list.append((succ_operation, release_time))
 	else:
 		succ_operation = [item for item in job_array if item.op_num == op_succ][0]
 		
@@ -176,6 +163,7 @@ def add_next_executable_operation(job_array, operation, machine_graph, executabl
 		if type(succ_operation.pre) is tuple:
 			if not((succ_operation.pre[0] in scheduled_operations) and (succ_operation.pre[1] in scheduled_operations)):
 				
+				# Find which of the previous operation hasn't been scheduled
 				if succ_operation.pre[0] not in scheduled_operations:
 					operation = [item for item in job_array if item.op_num == succ_operation.pre[0]][0]
 				elif succ_operation.pre[1] not in scheduled_operations:
@@ -183,13 +171,13 @@ def add_next_executable_operation(job_array, operation, machine_graph, executabl
 				else:
 					return executable_operations_list
 				
-				#if succ_operation.pre[1] not in scheduled_operations:
-				#operation = [item for item in job_array if item.op_num == succ_operation.pre[1]][0]
-
+				# Check if this operation is not available for execution
 				if not(get_flag(operation, executable_operations_list)):
 					
+					# Keep following the operation path back until you find the first operation that has been scheduled
 					while operation.pre != '':
 						pre_operation = [item for item in job_array if item.op_num == operation.pre][0]
+						# If a previous operation has been scheduled, then add this operation to executable operations list
 						if operation.pre in scheduled_operations:
 							executable_operations_list = append_operation_tuple(job_array, operation, machine_graph, executable_operations_list, algo_choice)
 							return executable_operations_list
@@ -197,26 +185,13 @@ def add_next_executable_operation(job_array, operation, machine_graph, executabl
 							return executable_operations_list
 						else:
 							operation = pre_operation
-					
+					# Add the last found operation to executable operations list
 					executable_operations_list = append_operation_tuple(job_array, operation, machine_graph, executable_operations_list, algo_choice)
 					return executable_operations_list
 
 				return executable_operations_list
 		
 		executable_operations_list = append_operation_tuple(job_array, succ_operation, machine_graph, executable_operations_list, algo_choice)
-
-#		# Get machining time for current operation
-#		machining_time = machine_assignment_algo.calculate_machining_time(succ_operation, machine_graph, succ_operation.mach_num)
-#		
-#		# Depending on the scheduling algorithm, add either machining/remaining/release time
-#		if algo_choice == "SMT":
-#			executable_operations_list.append((succ_operation, machining_time))
-#		elif algo_choice == "LRMT":
-#			remaining_time -=  machining_time
-#			executable_operations_list.append((succ_operation, remaining_time))
-#		else:
-#			release_time = operation.finish_time
-#			executable_operations_list.append((succ_operation, release_time))
 
 	return executable_operations_list
 
@@ -230,19 +205,22 @@ def schedule_SMT(jobs_array, machine_graph):
 	scheduled_operations = []
 	next_executable_operations = []
 
-	# For each starting operation, enable it to be available for scheduling
+	# For each starting operation (of a job), enable it to be available for scheduling
 	for i in range(len(jobs_array)):
 		operation = jobs_array[i][0]
 		machining_time = machine_assignment_algo.calculate_machining_time(operation, machine_graph, operation.mach_num)
 		next_executable_operations.append((operation, machining_time))
 
 	while next_executable_operations:
+		# Get the operation with shortest machining time
 		operation = get_SMT(next_executable_operations)[0]
 		job_array = jobs_array[int(operation.job_num[1:]) - 1]
 
+		# Schedule that operation onto it's assigned machine
 		schedule_operation(job_array, operation, machine_graph, scheduled_operations)
 
 		scheduled_operations.append(operation.op_num)
+		# Add operation's successors to the executable operations list
 		next_executable_operations = add_next_executable_operation(job_array, operation, machine_graph, next_executable_operations, scheduled_operations, "SMT")
 	return 1
 
@@ -251,18 +229,22 @@ def schedule_LRMT(jobs_array, machine_graph):
 	scheduled_operations = []
 	next_executable_operations = []
 
+	# For each starting operation (of a job), enable it to be available for scheduling
 	for i in range(len(jobs_array)):
 		operation = jobs_array[i][0]
 		total_remaining_time = get_total_remaining_time(jobs_array[i])
 		next_executable_operations.append((operation, total_remaining_time))
 	
 	while next_executable_operations:
+		# Get the operation belonging to the job with the largest remaining machining time
 		operation = get_LRMT(next_executable_operations)[0]
 		job_array = jobs_array[int(operation.job_num[1:]) - 1]
 
+		# Schedule that operation onto it's assigned machine
 		schedule_operation(job_array, operation, machine_graph, scheduled_operations)
 		scheduled_operations.append(operation.op_num)
 
+		# Add operation's successors to the executable operations list
 		next_executable_operations = add_next_executable_operation(job_array, operation, machine_graph, next_executable_operations, scheduled_operations, "LRMT")
 	return 1
 
@@ -271,15 +253,20 @@ def schedule_ERT(jobs_array, machine_graph):
 	scheduled_operations = []
 	next_executable_operations = []
 
+	# For each starting operation (of a job), enable it to be available for scheduling
 	for i in range(len(jobs_array)):
 		operation = jobs_array[i][0]
 		next_executable_operations.append((operation, operation.finish_time))
 	
 	while next_executable_operations:
+		# Get the operation with the earliest release (starting) time
 		operation = get_ERT(next_executable_operations)[0]
 		job_array = jobs_array[int(operation.job_num[1:]) - 1]
 
+		# Schedule that operation onto it's assigned machine
 		schedule_operation(job_array, operation, machine_graph, scheduled_operations)
 		scheduled_operations.append(operation.op_num)
 
+		# Add operation's successors to the executable operations list
 		next_executable_operations = add_next_executable_operation(job_array, operation, machine_graph, next_executable_operations, scheduled_operations, "ERT")
+	return 1
