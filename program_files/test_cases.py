@@ -148,3 +148,18 @@ x = machine_assignment_algo.run_shortest_path(jobs_array, TG)
 y = operation_scheduling.schedule_ERT(jobs_array, TG)
 print("Schedule Operation ERT")
 print(TG.nodes.data())
+
+
+res = nx.get_node_attributes(TG, 'op_schedule')
+print(res)
+
+makespan = 0
+op_num = ''
+mach_num = ''
+for mach, schedule in res.items():
+    for tupl in schedule:
+        if tupl[2] > makespan:
+            op_num = tupl[0]
+            mach_num = mach
+            makespan = tupl[2]
+print(op_num, mach_num, makespan)
