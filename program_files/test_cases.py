@@ -14,6 +14,8 @@ sys.path.append(os.path.join(base_dir, 'data'))
 import networkx as nx
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
 
 import graph
 import import_data
@@ -80,7 +82,7 @@ graph.add_edge_costs(TG, t_times_array, col_names)
 ## Assert nodes and weighted edges are added to graph
 res = nx.get_node_attributes(TG, 'tasks')
 assert len(res) > 0, "No nodes found with tasks"
-assert TG.edges[machines_array[0][0], machines_array[1][0]]['weight'] == 30, "Weighted edges not detected"
+assert TG.edges[machines_array[0][0], machines_array[1][0]]['weight'] == 0, "Weighted edges not detected"
 
 operation = jobs_array[0][0]
 elg_machs = list(machine_assignment_algo.find_eligible_machines(operation, TG))
@@ -151,7 +153,7 @@ print(TG.nodes.data())
 
 
 res = nx.get_node_attributes(TG, 'op_schedule')
-print(res)
+#print(res)
 
 makespan = 0
 op_num = ''
@@ -162,4 +164,32 @@ for mach, schedule in res.items():
             op_num = tupl[0]
             mach_num = mach
             makespan = tupl[2]
-print(op_num, mach_num, makespan)
+
+#print(op_num, mach_num, makespan)
+
+#fig = go.Figure(data=go.Bar(y=[2,3,1]))
+#fig.show()
+#fig.write_html('first_figure.html', auto_open=True)
+
+
+op_schedules = []
+res = nx.get_node_attributes(TG, 'op_schedule')
+
+for mach, schedule in res.items():
+    for tupl in schedule:
+        temp_dict = dict(Job="J"+tupl[0][1], Start=tupl[1], Finish=tupl[2], Machine=mach, Details=tupl[0]+"\n\n"+str(tupl[1])+"-"+str(tupl[2]))
+        op_schedules.append(temp_dict)
+
+print(op_schedules)
+gantt_df = pd.DataFrame(op_schedules)
+gantt_df['Delta'] = gantt_df['Finish'] - gantt_df['Start']
+
+fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color="Job", text="Details")
+fig.update_yaxes(autorange="reversed")
+fig.layout.xaxis.type = 'linear'
+for d in fig.data:
+    filt = gantt_df['Job'] == d.name
+    d.x = gantt_df[filt]['Delta'].tolist()
+#fig.data[0].x = gantt_df.delta.tolist()
+#f = fig.full_figure_for_development(warn=False)
+fig.show()

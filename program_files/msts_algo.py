@@ -4,7 +4,10 @@
 import sys
 import os
 import numpy as np
+import pandas as pd
 import networkx as nx
+import plotly.graph_objects as go
+import plotly.express as px
 import copy
 
 from numpy import random
@@ -87,6 +90,27 @@ def calculate_makespan(machine_graph):
                 makespan = tupl[2]
     return op_num, mach_num, makespan
 
+def create_gantt_chart(machine_graph):
+    op_schedules = []
+    res = nx.get_node_attributes(machine_graph, 'op_schedule')
+
+    for mach, schedule in res.items():
+        for tupl in schedule:
+            temp_dict = dict(Job="J"+tupl[0][1], Start=tupl[1], Finish=tupl[2], Machine=mach, Details=tupl[0])
+            op_schedules.append(temp_dict)
+
+    #print(op_schedules)
+    gantt_df = pd.DataFrame(op_schedules)
+    gantt_df['Delta'] = gantt_df['Finish'] - gantt_df['Start']
+    
+    fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color="Job", text="Details")
+    fig.update_yaxes(autorange="reversed")
+    fig.layout.xaxis.type = 'linear'
+    for d in fig.data:
+        filt = gantt_df['Job'] == d.name
+        d.x = gantt_df[filt]['Delta'].tolist()
+    fig.show()
+
 def get_random_operation(jobs_array):
     op_list = []
     for job in jobs_array:
@@ -109,6 +133,7 @@ def msts():
     C_eni_max = 100
     p_exp_con = 1.0
     swap_methods = ["swap machine", "swap operation", "SPO", "MSPO"]
+
 
     eps_start = 1.0
     eps_end = 0.0
@@ -188,6 +213,7 @@ def msts():
 
     ## Get initial solution ##
     curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+    create_gantt_chart(curr_graph)
 
     # Create a copy of the current solution (jobs and machine graph)
     curr_solution = (copy.deepcopy(curr_jobs), copy.deepcopy(curr_graph))
@@ -197,7 +223,7 @@ def msts():
     _, _, local_best_makespan = calculate_makespan(curr_solution[1])
     global_best_makespan = local_best_makespan
 
-
+    """
     ############################################################
     #                  BEGIN MSTS ALGORITHM                    #
     ############################################################
@@ -258,7 +284,7 @@ def msts():
             
             p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
             e_cnt += 1
-
+    """
 
 ### Begin program here ###
 if __name__ == '__main__':
