@@ -175,67 +175,68 @@ def msts():
 
     jobs_array = initialise_operations(instances_file)
 
-    for jobarray in jobs_array:
-        final_ops = []
-        for op in jobarray:
-            if op.succ == None:
-                final_ops.append(op)
+    if "DAFJS" in instances_file or "YFJS" in instances_file:
+        for jobarray in jobs_array:
+            final_ops = []
+            for op in jobarray:
+                if op.succ == None:
+                    final_ops.append(op)
 
-        branchlist = []
-        if len(final_ops) > 1:
-            print("Many end operations")
-            branchlist = recurse_forward(jobarray, jobarray[0].op_num, branchlist)
-        else:
-            print("Single end operation")
-            branchlist = recurse_reverse(jobarray, final_ops[0].op_num, branchlist)
-
-        print(branchlist)
-
-        sequences = []
-        templist = []
-        i = 0
-
-        while i < len(branchlist):
-            oper = branchlist[i]
-            if type(oper) is tuple:
-                if oper[1] == "Start":
-                    templist.append(oper[0])
-                    branched_copy = copy.deepcopy(templist)
-                    idx = i
-                if oper[1] == "Stop":
-                    templist.append(oper[0])
-                    sequences.append(templist)
-                    templist = copy.deepcopy(branched_copy)
+            branchlist = []
+            if len(final_ops) > 1:
+                print("Many end operations")
+                branchlist = recurse_forward(jobarray, jobarray[0].op_num, branchlist)
             else:
-                templist.append(oper)
+                print("Single end operation")
+                branchlist = recurse_reverse(jobarray, final_ops[0].op_num, branchlist)
 
-            i += 1
+            print(branchlist)
 
-        if len(final_ops) == 1:
-            for item in sequences:
-                item = item.reverse()
+            sequences = []
+            templist = []
+            i = 0
 
-        print(sequences)
+            while i < len(branchlist):
+                oper = branchlist[i]
+                if type(oper) is tuple:
+                    if oper[1] == "Start":
+                        templist.append(oper[0])
+                        branched_copy = copy.deepcopy(templist)
+                        idx = i
+                    if oper[1] == "Stop":
+                        templist.append(oper[0])
+                        sequences.append(templist)
+                        templist = copy.deepcopy(branched_copy)
+                else:
+                    templist.append(oper)
 
-        longestseq = max(sequences, key=len)
-        print(longestseq)
-        branch_label = 'S'
+                i += 1
 
-        for sequence in sequences:
-            if sequence == longestseq:
-                for op in longestseq:
-                    oper = [item for item in jobarray if item.op_num == op][0]
-                    oper.series = branch_label
-                branch_label = 'P1'
-            else:
-                for op in sequence:
-                    if op not in longestseq:
+            if len(final_ops) == 1:
+                for item in sequences:
+                    item = item.reverse()
+
+            print(sequences)
+
+            longestseq = max(sequences, key=len)
+            print(longestseq)
+            branch_label = 'S'
+
+            for sequence in sequences:
+                if sequence == longestseq:
+                    for op in longestseq:
                         oper = [item for item in jobarray if item.op_num == op][0]
                         oper.series = branch_label
-                branch_label = 'P' + str(int(branch_label[1]) + 1)
+                    branch_label = 'P1'
+                else:
+                    for op in sequence:
+                        if op not in longestseq:
+                            oper = [item for item in jobarray if item.op_num == op][0]
+                            oper.series = branch_label
+                    branch_label = 'P' + str(int(branch_label[1]) + 1)
 
-        for op in jobarray:
-            print(op.op_num, op.series)
+            for op in jobarray:
+                print(op.op_num, op.series)
 
 
     # TODO: Add branch name to operations (i.e. S, P1, P2)
