@@ -49,6 +49,22 @@ updateScheduleTimes(machines)
 Shortest Path (Adapted Dijkstra's Algorithm):
 Greedy heuristic to assign the quickest machines to operation over complete job path (sequential only)
 
+for job in jobslist:
+	initialise finalbestNode
+	
+	operation = job[0]
+	FindEligibleMachines(operation)
+	for machine in eligibleMachines:
+		priorityqueue.append((operation, machine, FT))
+	
+	while priorityqueue:
+		bestNode = min(priorityqueue.FT)
+		priorityqueue.pop(bestNode)
+		
+		operation = bestNode[0].succ
+		prevMachine = bestNode[1][-1]
+
+
 bestPaths = []
 For job in jobsList:
 	priorityQueue = []
