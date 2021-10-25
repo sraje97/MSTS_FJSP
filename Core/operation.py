@@ -2,9 +2,10 @@
 import os
 import numpy as np
 
+############################################################
 
 class Operation:
-    def __init__(self, job_num, op_num, pre_op=None, succ_op=None, branch='S', \
+    def __init__(self, job_num, op_num, pre_op=None, succ_op=None, branch='', \
                     eligible_machines='', assigned_machine=None, PT=0, FT=0):
         
         self.job_num = job_num

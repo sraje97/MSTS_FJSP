@@ -1,4 +1,6 @@
 from operation import Operation
+import networkx as nx
+import graph
 import copy
 
 jobarray = []
@@ -103,13 +105,13 @@ for op in jobarray:
 
 branchlist = []
 if len(final_ops) > 1:
-    print("Many end operations")
+#    print("Many end operations")
     branchlist = recurse_forward(jobarray, jobarray[0].op_num, branchlist)
 else:
-    print("Single end operation")
+#    print("Single end operation")
     branchlist = recurse_reverse(jobarray, final_ops[0].op_num, branchlist)
 
-print(branchlist)
+#print(branchlist)
 
 breakflag = False
 sequences = []
@@ -136,10 +138,10 @@ if len(final_ops) == 1:
     for item in sequences:
         item = item.reverse()
 
-print(sequences)
+#print(sequences)
 
 longestseq = max(sequences, key=len)
-print(longestseq)
+#print(longestseq)
 branch_label = 'S'
 
 for sequence in sequences:
@@ -155,5 +157,18 @@ for sequence in sequences:
                 oper.series = branch_label
         branch_label = 'P' + str(int(branch_label[1]) + 1)
 
-for op in jobarray:
-    print(op.op_num, op.series)
+#for op in jobarray:
+#    print(op.op_num, op.series)
+
+
+TG = nx.Graph()
+graph.add_node(TG, 'M1')
+graph.add_node(TG, 'M2')
+
+mach1 = [item for item in TG.nodes if item == "M1"][0]
+print(mach1)
+print(graph.get_node_info(TG, mach1))
+op_schedle = TG.nodes[mach1]['op_schedule']
+op_schedle.append(("O11", 0, 0))
+nx.set_node_attributes(TG, {mach1: {'op_schedule': op_schedle}})
+print(graph.get_node_info(TG, mach1))
