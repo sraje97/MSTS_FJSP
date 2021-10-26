@@ -5,11 +5,12 @@ from posixpath import splitext
 import sys
 import os
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import networkx as nx
-import plotly.graph_objects as go
-import plotly.express as px
+#import plotly.graph_objects as go
+#import plotly.express as px
 import copy
+from prettytable import PrettyTable
 
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
@@ -19,7 +20,6 @@ sys.path.append(base_dir)
 sys.path.append(os.path.join(base_dir, 'data'))
 
 ## IMPORT OUR MODULES
-import import_data
 from operation import Operation
 import preprocess
 import graph
@@ -55,10 +55,10 @@ def msts():
     ############################################################
 
     # TODO: Get as inputs
-    instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS01.txt'
+    instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS28.txt'
     num_jobs = 3
     num_diff_machines = 4
-    MA_algo_choice = "random"
+    MA_algo_choice = "shortest path"
     OS_algo_choice = ""
     epochs = 100
     C_eni_max = 100
@@ -77,8 +77,6 @@ def msts():
     if "DAFJS" in instances_file or "YFJS" in instances_file:
         jobs_array = preprocess.label_parallel_branches(jobs_array)
 
-    # TODO: Setup Machine graph and nodes/edges attributes
-    # machine : label, op_schedule
     machines_array.sort()
     G = nx.Graph()
     for machine in machines_array:
@@ -89,7 +87,12 @@ def msts():
         trans_times = np.zeros((len(machines_array), len(machines_array)))
         graph.add_edge_costs(G, trans_times, machines_array)
     
-    # TODO: Change operation numbers from numbers to labels
+    table = PrettyTable(['Job', 'Operation', 'Pre', 'Succ', 'Series', 'Machines', 'Assigned Machine'])
+    for job in jobs_array:
+        for op in job:
+            table.add_row([op.job_num, op.op_num, op.pre, op.succ, op.series, op.machines, op.mach_num])
+    print(table)
+    
 
     #print("Printing Graph")
     #print(graph.get_graph_info(G))

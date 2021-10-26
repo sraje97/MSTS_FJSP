@@ -59,6 +59,9 @@ def initialise_operations(datafile):
         generated_ops = []
         temp_jobs = []
 
+        # Change operations labels to standard labelling method
+        operations = change_ops_labels(operations)
+
         for ops in operations:
 
             # Create new Operation object instance if operation not seen before
@@ -135,7 +138,8 @@ def initialise_operations(datafile):
                 j += 2
             
             # Get the operation
-            op = [item for item in temp_jobs if item.op_num == str(i)][0]
+            #op = [item for item in temp_jobs if item.op_num == str(i)][0]
+            op = temp_jobs[i]
             if op == None:
                 raise Exception("Operation with this operation label not found!")
             
@@ -233,3 +237,20 @@ def label_parallel_branches(jobs_array):
         #    print(op.op_num, op.series)
 
     return jobs_array
+
+# Change the labels of operations from numbers to standard labelling method i.e. "O1_10"
+def change_ops_labels(operations):
+    label = ['O', 'J', 0, 1]
+    base = 1
+
+    for ops in operations:
+        if ops[2] == "".join( [ str(label[1]), str(label[2]) ] ):
+            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
+            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
+        else:
+            base_diff = base - int(ops[0])
+            label[2] += 1
+            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
+            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
+
+    return operations
