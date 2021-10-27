@@ -9,7 +9,7 @@ bigM = 999_999
 
 # Get machining time for specific operation-machine combination [MT = (PT * alpha) + (ST * beta)]
 def calculate_machining_time(machine_graph, machine):
-    return round( int(machine[1]) * machine_graph.nodes[machine[0]]['alpha'] )
+    return round( machine[1] * machine_graph.nodes[machine[0]]['alpha'] )
 
 # Get transition time from previous operation's machine to current operation's machine
 def get_transition_time(machine_graph, machA, machB):
@@ -105,6 +105,11 @@ def assign_parallel_operation_pre(job_array, operation, machine_graph):
         else:
             break
 
+def getIndexOfTuple(l, index, value):
+    for pos,t in enumerate(l):
+        if t[index] == value:
+            return pos
+
 ############################################################
 #               MACHINE ASSIGNMENT ALGORITHMS              #
 ############################################################
@@ -154,6 +159,7 @@ def run_greedy(jobs_array, machine_graph, greedy_type="FMT"):
 
 # Use adapted Dijkstra's algorithm to assign machine with shortest path for each job
 def run_shortest_path(jobs_array, machine_graph):
+    random.seed(1)
     total_jobs = len(jobs_array)
     jobs = []
     for i in range(total_jobs):
@@ -162,6 +168,7 @@ def run_shortest_path(jobs_array, machine_graph):
     while jobs:
         # Select any arbitrary job to assign machines using Shortest Path
         random_job = random.choice(jobs)
+        #print(random_job)
         # Remove job from list of jobs to be chosen
         jobs.remove(random_job)
         job = [item for item in jobs_array if item[0].job_num == random_job][0]
@@ -176,6 +183,10 @@ def run_shortest_path(jobs_array, machine_graph):
         operation = job[0]
         eligible_machines = operation.machines
 
+        if len(eligible_machines) > 3:
+            eligible_machines.sort(key=lambda a: a[1])
+            eligible_machines = eligible_machines[0:3]
+
         for machine in eligible_machines:
             # For each eligible machine add tuple of (operation, machince, total time) 
             # to the priority queue
@@ -186,7 +197,10 @@ def run_shortest_path(jobs_array, machine_graph):
         while priority_queue:
             # Get node with the smallest total time in queue
             best_node = get_best_node(priority_queue)
-            idx = [i for i, tupl in enumerate(priority_queue) if tupl[1] == best_node[1]][-1]
+            idx = getIndexOfTuple(priority_queue, 1, best_node[1])
+            #idx = [index for (index, item) in enumerate(priority_queue) if item[1] == best_node[1]][-1]
+            #print(idx)
+            #idx = [i for i, tupl in enumerate(priority_queue) if tupl[1] == best_node[1]][-1]
             # Pop node from queue
             priority_queue.pop(idx)
 
@@ -195,40 +209,45 @@ def run_shortest_path(jobs_array, machine_graph):
             prev_machine = best_node[1][-1]
 
             if type(op_succ) is list:
-                for i in range(len(op_succ)):
-                    parallel_op = [item for item in job if item.op_num in op_succ and item.series == ("P"+str(i+1))]
-                    # Assign any previous parallel operations (after disassembly/split)
-                    if parallel_op == []:
-                        continue
-                    else:
-                        parallel_op = parallel_op[0]
-                        if parallel_op.op_num not in processed_parallel_ops:
-                            processed_parallel_ops.append(parallel_op.op_num)
+                for op in op_succ:
+                    oper = [item for item in job if item.op_num == op][0]
+                    if oper.series[0] == 'P':
+                        if oper.op_num not in processed_parallel_ops:
+                            #print("Parallel successor", oper.op_num, oper.job_num)
+                            processed_parallel_ops.append(oper.op_num)
 
                             # Assign the parallel operation to a machine
-                            assign_parallel_operation_succ(job, parallel_op, machine_graph)
-            operation = [item for item in job if item.op_num in op_succ and item.series == "S"][0]
+                            assign_parallel_operation_succ(job, oper, machine_graph)
+                    if oper.series[0] == 'S':
+                        seq_op = oper.op_num
+                op_succ = seq_op
+
+            operation = [item for item in job if item.op_num == op_succ][-1]
+            #operation = [item for item in job if item.op_num in op_succ and item.series == "S"][-1]
             
             # Get previous operation and check if tuple
             op_pre = operation.pre
 
             if type(op_pre) is list:
-                for i in range(len(op_pre)):
-                    parallel_op = [item for item in job if item.op_num in op_pre and item.series == ("P"+str(i+1))]
-                    # Assign any previous parallel operations (before assembly/join)
-                    if parallel_op == []:
-                        continue
-                    else:
-                        parallel_op = parallel_op[0]
-                        if parallel_op.op_num not in processed_parallel_ops:
-                            processed_parallel_ops.append(parallel_op.op_num)
+                for op in op_pre:
+                    oper = [item for item in job if item.op_num == op][0]
+                    if oper.series[0] == 'P':
+                        if oper.op_num not in processed_parallel_ops:
+                            #print("Parallel successor", oper.op_num, oper.job_num)
+                            processed_parallel_ops.append(oper.op_num)
 
                             # Assign the parallel operation to a machine
-                            assign_parallel_operation_pre(job, parallel_op, machine_graph)
+                            assign_parallel_operation_pre(job, oper, machine_graph)
+
 
             # Add operations (bar the final operations of each job) to the priority queue
             if operation.succ != None:
                 eligible_machines = operation.machines
+
+                if len(eligible_machines) > 3:
+                    eligible_machines.sort(key=lambda a: a[1])
+                    eligible_machines = eligible_machines[0:3]
+
                 for machine in eligible_machines:
                     temp_node = deepcopy(best_node)
                     # Create a path node (tuple) for operation + machine/path sequence + total time
@@ -237,6 +256,7 @@ def run_shortest_path(jobs_array, machine_graph):
                     # Add path node (tuple) to the priority queue
                     priority_queue.append(path_node)
             else:
+                #print("Final operation", operation.op_num, operation.job_num)
                 eligible_machines = operation.machines
                 for machine in eligible_machines:
                     # Create a path node (tuple) for operation + machine/path sequence + total time

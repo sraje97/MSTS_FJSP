@@ -11,6 +11,7 @@ import networkx as nx
 #import plotly.express as px
 import copy
 from prettytable import PrettyTable
+import timeit
 
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
@@ -32,30 +33,32 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
 
     # Random machine assignment
     if MA_algo.lower() == 'random':
-        print(MA_algo)
+        #print(MA_algo)
         x = machine_assignment.run_random(jobs_array, machine_graph)
-        print("Return Random", x)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return Random", x)
+        #print(graph.get_graph_info(machine_graph))
     # Greedy machine assignment
     elif MA_algo.lower() == 'greedy':
-        print(MA_algo)
+        #print(MA_algo)
         x = machine_assignment.run_greedy(jobs_array, machine_graph, "FMT")
-        print("Return Greedy", x)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return Greedy", x)
+        #print(graph.get_graph_info(machine_graph))
     # Shortest Path machine assignment
     else:
-        print(MA_algo)
+        #print(MA_algo)
         x = machine_assignment.run_shortest_path(jobs_array, machine_graph)
-        print("Return Shortest Path:", x)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return Shortest Path:", x)
+        #print(graph.get_graph_info(machine_graph))
 
-def msts():
+def msts(instances_file):
     ############################################################
     #               INITIALIALISE JOBS + MACHINES              #
     ############################################################
 
     # TODO: Get as inputs
-    instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS28.txt'
+    #instances_file = base_dir + 'data\Benchmarks\YFJS\YFJS17.txt'
+    #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
+    #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     num_jobs = 3
     num_diff_machines = 4
     MA_algo_choice = "shortest path"
@@ -91,7 +94,7 @@ def msts():
     for job in jobs_array:
         for op in job:
             table.add_row([op.job_num, op.op_num, op.pre, op.succ, op.series, op.machines, op.mach_num])
-    print(table)
+    #print(table)
     
 
     #print("Printing Graph")
@@ -116,4 +119,24 @@ def msts():
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
-    msts()
+    #msts("data\Benchmarks\YFJS\YFJS09.txt")
+    
+    for i in range(20):
+        if i < 9:
+            file_num = "0" + str(i+1)
+        else:
+            file_num = str(i+1)
+        filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
+        starttime = timeit.default_timer()
+        msts(filename)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    
+    for i in range(30):
+        if i < 8:
+            file_num = "0" + str(i+1)
+        else:
+            file_num = str(i+1)
+        filename = "data\Benchmarks\DAFJS\DAFJS" + file_num + ".txt"
+        starttime = timeit.default_timer()
+        msts(filename)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime)

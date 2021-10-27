@@ -130,7 +130,7 @@ def initialise_operations(datafile):
             while j < len(machines[i]):
                 machine = 'M' + machines[i][j]
                 process_time = machines[i][j+1]
-                eligible_machines.append((machine, process_time))
+                eligible_machines.append((machine, int(process_time)))
 
                 # Store the different number of machines
                 if machine not in unique_machines:
@@ -189,6 +189,12 @@ def label_parallel_branches(jobs_array):
             branchlist = recurse_reverse(job, final_ops[0].op_num, branchlist)
 
         #print(branchlist)
+        tupl_cnt = 0
+        for ele in branchlist:
+            if type(ele) is tuple:
+                tupl_cnt += 1
+        if tupl_cnt == 1:
+            continue
 
         sequences = []
         templist = []
@@ -218,15 +224,18 @@ def label_parallel_branches(jobs_array):
 
         longestseq = max(sequences, key=len)
         #print(longestseq)
-        branch_label = 'S'
+        branch_label = ''
 
         for sequence in sequences:
             if sequence == longestseq:
+                branch_label = 'S'
                 for op in longestseq:
                     oper = [item for item in job if item.op_num == op][0]
                     oper.series = branch_label
                 branch_label = 'P1'
             else:
+                if branch_label == '':
+                    branch_label = 'P1'
                 for op in sequence:
                     if op not in longestseq:
                         oper = [item for item in job if item.op_num == op][0]
