@@ -27,6 +27,14 @@ import graph
 import machine_assignment
 
 ############################################################
+
+def print_job_info(jobs_array):
+    table = PrettyTable(['Job', 'Operation', 'Pre', 'Succ', 'Series', 'Machines', 'Assigned Machine'])
+    for job in jobs_array:
+        for op in job:
+            table.add_row([op.job_num, op.op_num, op.pre, op.succ, op.series, op.machines, op.mach_num])
+    print(table)
+
 def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
     
     ### MACHINE ASSIGNMENT ###
@@ -90,12 +98,7 @@ def msts(instances_file):
         trans_times = np.zeros((len(machines_array), len(machines_array)))
         graph.add_edge_costs(G, trans_times, machines_array)
     
-    table = PrettyTable(['Job', 'Operation', 'Pre', 'Succ', 'Series', 'Machines', 'Assigned Machine'])
-    for job in jobs_array:
-        for op in job:
-            table.add_row([op.job_num, op.op_num, op.pre, op.succ, op.series, op.machines, op.mach_num])
-    #print(table)
-    
+    #print_job_info(jobs_array)
 
     #print("Printing Graph")
     #print(graph.get_graph_info(G))
@@ -119,8 +122,13 @@ def msts(instances_file):
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
-    #msts("data\Benchmarks\YFJS\YFJS09.txt")
-    
+    #starttime = timeit.default_timer()
+    #filename = "data\Benchmarks\YFJS\YFJS20.txt"
+    #msts(filename)
+    #print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+
+    """
+    print("## YFJS: ##")
     for i in range(20):
         if i < 9:
             file_num = "0" + str(i+1)
@@ -131,12 +139,21 @@ if __name__ == '__main__':
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)
     
+    print("## DAFJS: ##")
     for i in range(30):
-        if i < 8:
+        if i < 9:
             file_num = "0" + str(i+1)
         else:
             file_num = str(i+1)
         filename = "data\Benchmarks\DAFJS\DAFJS" + file_num + ".txt"
+        starttime = timeit.default_timer()
+        msts(filename)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    """
+    print("## YFJS: ##")
+    for i in range(18, 20):
+        file_num = str(i+1)
+        filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)

@@ -15,17 +15,46 @@ def calculate_machining_time(machine_graph, machine):
 def get_transition_time(machine_graph, machA, machB):
     return machine_graph.edges[machA, machB]['weight']
 
+def get_best_node(p_queue):
+    return min(p_queue, key=operator.itemgetter(2))
+
+def getIndexOfTuple(l, index, value):
+    for pos,t in enumerate(l):
+        if t[index] == value:
+            return pos
+
+def find_first_op(job_array):
+    operation = job_array[-1]
+    op_found_flag = False
+    while not op_found_flag:
+        op_pre = operation.pre
+        if type(op_pre) is list:
+            for op in op_pre:
+                operation = [item for item in job_array if item.op_num == op][0]
+                if operation.series[0] == 'S':
+                    break
+        elif op_pre == None:
+            op_found_flag = True
+            return operation
+        else:
+            operation = [item for item in job_array if item.op_num == op_pre][0]
+    return -1
+        
+
+
+
 # Add operation to the machine's schedule and store machine in operation's 'mach_num' variable
 def assign_operation_to_machine(operation, machine_graph, machine):
     # Add machine label to operation
-    operation.mach_num = machine
+    operation.mach_num = machine[0]
+    operation.processing_time = machine[1]
 
     # Add operation to machine/node's attribute
     # Don't assign starting and finishing time yet
-    op_schedule = machine_graph.nodes[machine]['op_schedule']
+    op_schedule = machine_graph.nodes[machine[0]]['op_schedule']
     op_schedule.append( (operation.op_num, 0, 0) )
 
-    nx.set_node_attributes(machine_graph, {machine: {'op_schedule': op_schedule } } )
+    nx.set_node_attributes(machine_graph, {machine[0]: {'op_schedule': op_schedule } } )
 
 def get_min_FMT(operation, machine_graph, eligible_machines):
     minFMT = bigM
@@ -38,12 +67,9 @@ def get_min_FMT(operation, machine_graph, eligible_machines):
         if machining_time < minFMT:
             # Assign the machine with FMT for operation
             minFMT = machining_time
-            best_machine = machine[0]
+            best_machine = machine
     # Assign machine to operation
     assign_operation_to_machine(operation, machine_graph, best_machine)
-
-def get_best_node(p_queue):
-    return min(p_queue, key=operator.itemgetter(2))
 
 # Create a node/tuple (operation, path sequence, total time)
 def make_path_node(operation, machine_graph, machine, prev_machine, node):
@@ -105,11 +131,6 @@ def assign_parallel_operation_pre(job_array, operation, machine_graph):
         else:
             break
 
-def getIndexOfTuple(l, index, value):
-    for pos,t in enumerate(l):
-        if t[index] == value:
-            return pos
-
 ############################################################
 #               MACHINE ASSIGNMENT ALGORITHMS              #
 ############################################################
@@ -123,10 +144,10 @@ def run_random(jobs_array, machine_graph):
 
             if len(eligible_machines) > 1:
                 # Choose any random machine if more than one compatible machine
-                machine = random.choice(eligible_machines)[0]
+                machine = random.choice(eligible_machines)
             else:
                 # Choose the only eligible machine
-                machine = eligible_machines[0][0]
+                machine = eligible_machines[0]
             # Assign the machine to the operation (and vice versa)
             assign_operation_to_machine(operation, machine_graph, machine)
     return 1
@@ -152,7 +173,7 @@ def run_greedy(jobs_array, machine_graph, greedy_type="FMT"):
                     if machining_time > maxFMT:
                         # Assign the machine with LMT for operation
                         maxFMT = machining_time
-                        best_machine = machine[0]
+                        best_machine = machine
                 # Assign the machine to the operation (and vice versa)
                 assign_operation_to_machine(operation, machine_graph, best_machine)
     return 1
@@ -181,6 +202,8 @@ def run_shortest_path(jobs_array, machine_graph):
         best_final_node = (None, None, bigM)
 
         operation = job[0]
+        if operation.series[0] != 'S':
+            operation = find_first_op(job)
         eligible_machines = operation.machines
 
         if len(eligible_machines) > 3:
@@ -259,8 +282,9 @@ def run_shortest_path(jobs_array, machine_graph):
                 #print("Final operation", operation.op_num, operation.job_num)
                 eligible_machines = operation.machines
                 for machine in eligible_machines:
+                    temp_node = deepcopy(best_node)
                     # Create a path node (tuple) for operation + machine/path sequence + total time
-                    path_node = make_path_node(operation, machine_graph, machine, prev_machine, best_node)
+                    path_node = make_path_node(operation, machine_graph, machine, prev_machine, temp_node)
                     
                     # Store node with lowest total time
                     if path_node[2] < best_final_node[2]:
@@ -280,7 +304,12 @@ def run_shortest_path(jobs_array, machine_graph):
                     if type(last_operation) is list:
                         #last_operation = last_operation[0]
                         #operation = [item for item in job if item.op_num == last_operation][0]
-                        operation = [item for item in job if item.op_num in last_operation and item.series == "S"][0]
+                        for op in last_operation:
+                            oper = [item for item in job if item.op_num == op][0]
+                            if oper.series[0] == 'S':
+                                operation = oper
+
+                        #operation = [item for item in job if item.op_num in last_operation and item.series == "S"][0]
                         assignment_list.append( (operation, last_machine) )
 
                         # Remove machine from path sequence and get preceding operation
@@ -302,6 +331,7 @@ def run_shortest_path(jobs_array, machine_graph):
                         break
                 # Assign machine and operation through the back propagated assignment list
                 for element in reversed(assignment_list):
-                    assign_operation_to_machine(element[0], machine_graph, element[1])
+                    machine = [item for item in element[0].machines if item[0] == element[1]][0]
+                    assign_operation_to_machine(element[0], machine_graph, machine)
                 break
     return 1
