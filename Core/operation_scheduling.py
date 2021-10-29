@@ -59,7 +59,7 @@ def get_total_remaining_time(job_array, op=None):
         # If operation is specified, sum up total machining time from operation
         while op.succ != None:
             total_time += op.processing_time
-            if type(op.succ) is tuple:
+            if type(op.succ) is list:
                 for oper in op.succ:
                     op = [item for item in job_array if item.op_num == oper][0]
                     if op.series[0] == 'S':
@@ -170,6 +170,8 @@ def add_next_executable_operation(job, operation, machine_graph, executable_oper
 
         # In case of parallel previous operations, check if all have been scheduled
         if type(succ_operation.pre) is list:
+            schedule_cnt = 0
+            exec_cnt = 0
             for op in succ_operation.pre:
                 if op not in scheduled_operations:
                     # Get the previous operation which hasn't been scheduled
@@ -193,6 +195,20 @@ def add_next_executable_operation(job, operation, machine_graph, executable_oper
                         # Add the last found operation to executable operations list
                         executable_operations = append_operation_tuple(job, operation, machine_graph, executable_operations, OS_algo)
                         return executable_operations
+                    else:
+                        exec_cnt += 1
+                        #if operation.op_num == succ_operation.pre[-1]:
+                        #    return executable_operations
+                else:
+                    schedule_cnt += 1
+            if schedule_cnt == len(succ_operation.pre):
+                pass
+            elif exec_cnt + schedule_cnt == len(succ_operation.pre):
+                return executable_operations
+            else:
+                print("Not all pre ops are executable or scheduled")
+            #if schedule_cnt != len(succ_operation.pre):
+
         executable_operations = append_operation_tuple(job, succ_operation, machine_graph, executable_operations, OS_algo)
     
     return executable_operations

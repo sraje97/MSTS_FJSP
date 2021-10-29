@@ -5,10 +5,10 @@ from posixpath import splitext
 import sys
 import os
 import numpy as np
-#import pandas as pd
+import pandas as pd
 import networkx as nx
-#import plotly.graph_objects as go
-#import plotly.express as px
+import plotly.graph_objects as go
+import plotly.express as px
 import copy
 from prettytable import PrettyTable
 import timeit
@@ -25,6 +25,7 @@ from operation import Operation
 import preprocess
 import graph
 import machine_assignment
+import operation_scheduling
 
 ############################################################
 
@@ -56,7 +57,50 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
         #print(MA_algo)
         x = machine_assignment.run_shortest_path(jobs_array, machine_graph)
         #print("Return Shortest Path:", x)
-        #print(graph.get_graph_info(machine_graph))
+        #rint(graph.get_graph_info(machine_graph))
+
+    ### OPERATION SCHEDULING ###
+    # Shortest Machining Time
+    if OS_algo == "SMT":
+        print(OS_algo)
+        y = operation_scheduling.schedule_SMT(jobs_array, machine_graph)
+        print("Return SMT Schedule:", y)
+        print(graph.get_graph_info(machine_graph))
+    # Largest Remaining Machining Time
+    elif OS_algo == "LRMT":
+        print(OS_algo)
+        y = operation_scheduling.schedule_LRMT(jobs_array, machine_graph)
+        print("Return LRMT Schedule:", y)
+        print(graph.get_graph_info(machine_graph))
+    # Earliest Release Time
+    else:
+        print(OS_algo)
+        y = operation_scheduling.schedule_ERT(jobs_array, machine_graph)
+        print("Return ERT Schedule:", y)
+        print(graph.get_graph_info(machine_graph))
+    
+    return jobs_array
+
+def create_gantt_chart(machine_graph):
+    op_schedules = []
+    res = nx.get_node_attributes(machine_graph, 'op_schedule')
+
+    for mach, schedule in res.items():
+        for tupl in schedule:
+            temp_dict = dict(Job="J"+tupl[0][1], Start=tupl[1], Finish=tupl[2], Machine=mach, Details=tupl[0])
+            op_schedules.append(temp_dict)
+
+    #print(op_schedules)
+    gantt_df = pd.DataFrame(op_schedules)
+    gantt_df['Delta'] = gantt_df['Finish'] - gantt_df['Start']
+    
+    fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color="Job", text="Details")
+    fig.update_yaxes(autorange="reversed")
+    fig.layout.xaxis.type = 'linear'
+    for d in fig.data:
+        filt = gantt_df['Job'] == d.name
+        d.x = gantt_df[filt]['Delta'].tolist()
+    fig.show()
 
 def msts(instances_file):
     ############################################################
@@ -69,8 +113,8 @@ def msts(instances_file):
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     num_jobs = 3
     num_diff_machines = 4
-    MA_algo_choice = "shortest path"
-    OS_algo_choice = ""
+    MA_algo_choice = "SHORTEST PATH"
+    OS_algo_choice = "ERT"
     epochs = 100
     C_eni_max = 100
     p_exp_con = 1.0
@@ -118,18 +162,20 @@ def msts(instances_file):
     # TODO:
     ## Get initial solution ##
     curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+    create_gantt_chart(curr_graph)
 
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
-    #starttime = timeit.default_timer()
-    #filename = "data\Benchmarks\YFJS\YFJS20.txt"
-    #msts(filename)
-    #print("Time taken for", filename, ":", timeit.default_timer() - starttime)
-
+    """
+    starttime = timeit.default_timer()
+    filename = "data\Benchmarks\DAFJS\DAFJS01.txt"
+    msts(filename)
+    print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    """
     """
     print("## YFJS: ##")
-    for i in range(20):
+    for i in range(18, 20):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
@@ -138,6 +184,7 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    """
     
     print("## DAFJS: ##")
     for i in range(30):
@@ -149,6 +196,7 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    
     """
     print("## YFJS: ##")
     for i in range(18, 20):
@@ -157,3 +205,4 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+    """

@@ -6,6 +6,32 @@ import import_data
 
 ############################################################
 
+# Change the labels of operations from numbers to standard labelling method i.e. "O1_10"
+def change_ops_labels(operations, machines):
+    label = ['O', 'J', 0, 1]
+    base = 1
+
+    for ops in operations:
+        op_1 = ops[0]
+        op_2 = ops[1]
+        if ops[2] == "".join( [ str(label[1]), str(label[2]) ] ):
+            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
+            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
+        else:
+            base_diff = base - int(ops[0])
+            label[2] += 1
+            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
+            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
+        
+        for i in range(len(machines)):
+            if op_1 == machines[i][0]:
+                machines[i][0] = ops[0]
+            if op_2 == machines[i][0]:
+                machines[i][0] = ops[1]
+                break
+
+    return operations, machines
+
 def recurse_reverse(jobarray, pre_op, branch):
     op = [item for item in jobarray if item.op_num == pre_op][0]
 
@@ -60,7 +86,7 @@ def initialise_operations(datafile):
         temp_jobs = []
 
         # Change operations labels to standard labelling method
-        operations = change_ops_labels(operations)
+        operations, machines = change_ops_labels(operations, machines)
 
         for ops in operations:
 
@@ -121,6 +147,27 @@ def initialise_operations(datafile):
         ## MACHINES ##
         # Store unique machines
         unique_machines = []
+
+        for machine_set in machines:
+            eligible_machines = []
+            j = 2
+
+            while j < len(machine_set):
+                machine = "M" + machine_set[j]
+                process_time = machine_set[j+1]
+                eligible_machines.append( (machine, int(process_time)) )
+
+                # Store the different number of machines
+                if machine not in unique_machines:
+                    unique_machines.append(machine)
+                j += 2
+                            
+            op = [item for item in temp_jobs if item.op_num == machine_set[0]][0]
+            op.machines = eligible_machines
+
+
+
+        """
         for i in range(len(machines)):
             # Initialise a list of operation's eligible machines
             eligible_machines = []
@@ -137,14 +184,9 @@ def initialise_operations(datafile):
                     unique_machines.append(machine)
                 j += 2
             
-            # Get the operation
-            #op = [item for item in temp_jobs if item.op_num == str(i)][0]
-            op = temp_jobs[i]
-            if op == None:
-                raise Exception("Operation with this operation label not found!")
-            
             # Add the eligible machines to the operation
             op.machines = eligible_machines
+        """
         
         #for op in temp_jobs:
         #    print(op.op_num, op.job_num, op.pre, op.succ, op.machines)
@@ -246,20 +288,3 @@ def label_parallel_branches(jobs_array):
         #    print(op.op_num, op.series)
 
     return jobs_array
-
-# Change the labels of operations from numbers to standard labelling method i.e. "O1_10"
-def change_ops_labels(operations):
-    label = ['O', 'J', 0, 1]
-    base = 1
-
-    for ops in operations:
-        if ops[2] == "".join( [ str(label[1]), str(label[2]) ] ):
-            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
-            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
-        else:
-            base_diff = base - int(ops[0])
-            label[2] += 1
-            ops[0] = label[0] + str(label[2]) + "_" + str( int(ops[0]) + base_diff )
-            ops[1] = label[0] + str(label[2]) + "_" + str( int(ops[1]) + base_diff )
-
-    return operations

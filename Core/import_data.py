@@ -15,6 +15,7 @@ def import_txt_data(filename):
         for i in range(num_ops):
             line = f.readline()
             line = line.split()
+            line.insert(0, str(i))
             op_machines.append(line)
 
     f.close
