@@ -41,3 +41,11 @@ def clear_multiple_nodes_data(graph, attribute):
             graph.nodes[node][attribute] = []
         else:
             graph.nodes[node][attribute] = None
+
+# Sort machine's op_schedule
+def sort_op_schedule(graph):
+    res = nx.get_node_attributes(graph, 'op_schedule')
+    
+    for mach, schedule in res.items():
+        schedule.sort(key=lambda a: a[2])
+        nx.set_node_attributes(graph, {mach: {'op_schedule': schedule} } )

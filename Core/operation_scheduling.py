@@ -141,6 +141,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
     # Update the tuple in the machine's schedule
     op_tuple = (operation.op_num, start_time, finish_time)
     op_schedule[idx] = op_tuple
+    #op_schedule.sort(key=lambda a: a[2])
     nx.set_node_attributes(machine_graph, {machine: {'op_schedule': op_schedule} } )
     
     # Update the operation's finish time

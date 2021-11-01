@@ -62,24 +62,39 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
     ### OPERATION SCHEDULING ###
     # Shortest Machining Time
     if OS_algo == "SMT":
-        print(OS_algo)
+        #print(OS_algo)
         y = operation_scheduling.schedule_SMT(jobs_array, machine_graph)
-        print("Return SMT Schedule:", y)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return SMT Schedule:", y)
+        #print(graph.get_graph_info(machine_graph))
     # Largest Remaining Machining Time
     elif OS_algo == "LRMT":
-        print(OS_algo)
+        #print(OS_algo)
         y = operation_scheduling.schedule_LRMT(jobs_array, machine_graph)
-        print("Return LRMT Schedule:", y)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return LRMT Schedule:", y)
+        #print(graph.get_graph_info(machine_graph))
     # Earliest Release Time
     else:
-        print(OS_algo)
+        #print(OS_algo)
         y = operation_scheduling.schedule_ERT(jobs_array, machine_graph)
-        print("Return ERT Schedule:", y)
-        print(graph.get_graph_info(machine_graph))
+        #print("Return ERT Schedule:", y)
+        #print(graph.get_graph_info(machine_graph))
     
     return jobs_array
+
+def calculate_makespan(machine_graph):
+    res = nx.get_node_attributes(machine_graph, 'op_schedule')
+
+    makespan = 0
+    op_num = ''
+    mach_num = ''
+
+    for mach, schedule in res.items():
+        for tupl in schedule:
+            if tupl[2] > makespan:
+                op_num = tupl[0]
+                mach_num = mach
+                makespan = tupl[2]
+    return op_num, mach_num, makespan
 
 def create_gantt_chart(machine_graph):
     op_schedules = []
@@ -111,14 +126,13 @@ def msts(instances_file):
     #instances_file = base_dir + 'data\Benchmarks\YFJS\YFJS17.txt'
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
-    num_jobs = 3
-    num_diff_machines = 4
-    MA_algo_choice = "SHORTEST PATH"
+    MA_algo_choice = "greedy"
     OS_algo_choice = "ERT"
+
     epochs = 100
-    C_eni_max = 100
+    TS_cnt_max = 100
     p_exp_con = 1.0
-    swap_methods = ["swap machine", "swap operation", "SPO", "MSPO"]
+    swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
 
     eps_start = 1.0
     eps_end = 0.0
@@ -162,7 +176,84 @@ def msts(instances_file):
     # TODO:
     ## Get initial solution ##
     curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
-    create_gantt_chart(curr_graph)
+
+    # Create Gantt Chart
+    #create_gantt_chart(curr_graph)
+
+    # Create a copy of the current solution (jobs and machine graph)
+    curr_solution = (copy.deepcopy(curr_jobs), copy.deepcopy(curr_graph))
+    _, _, local_best_mks = calculate_makespan(curr_solution[1])
+    global_best_mks = local_best_mks
+    #print(local_best_mks)
+
+
+    ############################################################
+    #                  BEGIN MSTS ALGORITHM                    #
+    ############################################################
+
+    e_cnt = 0       # Epoch counter
+    TS_cnt = 0      # Tabu Search counter
+    tabu_list = []
+
+    TS_start_time = timeit.default_timer()
+
+    while e_cnt < epochs:
+        # Terminate program after 1 hour
+        if (timeit.default_timer() - TS_start_time) > 3600:
+            break
+
+        # Keep a copy of the previous solution
+        prev_solution = copy.deepcopy(curr_solution)
+
+        # Get random swap method
+        swap_method = np.random.choice(swap_methods)
+
+
+        ## TODO: CONDUCT SWAP ##
+        # tabu_tuple = SWAP_OPERATION(operation, swap_method, curr_jobs, curr_graph)
+        # Tabu Tuple outline: (operation, machine, tabu_tenure)
+
+        last_op, last_mach, makespan = calculate_makespan(curr_solution[1])
+
+        if makespan < local_best_mks:
+            local_best_mks = makespan
+            local_best_sln = copy.deepcopy(curr_solution)
+
+            # TODO: Search Tabu list
+            # if tabu_tuple in tabu_list:
+                # tabu_list.remove(tabu_tuple)
+            # tabu_list.append(tabu_tuple)
+
+            TS_cnt = 0
+        else:
+            TS_cnt += 1
+            curr_solution = prev_solution
+
+        for tabu_tuple in tabu_list:
+            tabu_tuple[-1] -= 1
+            if tabu_tuple[-1] == 0:
+                tabu_list.remove(tabu_tuple)
+
+        
+        if TS_cnt == TS_cnt_max:
+            p = np.random.random()
+
+            if local_best_mks < global_best_mks:
+                global_best_mks = local_best_mks
+                global_best_sln = copy.deepcopy(local_best_sln)
+            
+            if p < p_exp_con:
+                curr_jobs = copy.deepcopy(jobs_array)
+                curr_graph = copy.deepcopy(G)
+
+                ## Get initial solution ##
+                curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+            else:
+                curr_solution = global_best_sln
+
+            p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
+            e_cnt += 1
+
 
 
 ### BEGIN MAIN PROGRAM ###
@@ -173,9 +264,9 @@ if __name__ == '__main__':
     msts(filename)
     print("Time taken for", filename, ":", timeit.default_timer() - starttime)
     """
-    """
+    
     print("## YFJS: ##")
-    for i in range(18, 20):
+    for i in range(20):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
@@ -196,7 +287,7 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime)
-    
+    """
     """
     print("## YFJS: ##")
     for i in range(18, 20):
