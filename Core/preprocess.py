@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+import pandas as pd
 
 from operation import Operation
 import import_data
@@ -164,29 +165,6 @@ def initialise_operations(datafile):
                             
             op = [item for item in temp_jobs if item.op_num == machine_set[0]][0]
             op.machines = eligible_machines
-
-
-
-        """
-        for i in range(len(machines)):
-            # Initialise a list of operation's eligible machines
-            eligible_machines = []
-            j = 1
-
-            # For each eligible machine for operation save label and processing time
-            while j < len(machines[i]):
-                machine = 'M' + machines[i][j]
-                process_time = machines[i][j+1]
-                eligible_machines.append((machine, int(process_time)))
-
-                # Store the different number of machines
-                if machine not in unique_machines:
-                    unique_machines.append(machine)
-                j += 2
-            
-            # Add the eligible machines to the operation
-            op.machines = eligible_machines
-        """
         
         #for op in temp_jobs:
         #    print(op.op_num, op.job_num, op.pre, op.succ, op.machines)
@@ -216,9 +194,13 @@ def initialise_operations(datafile):
     return jobs_array, unique_machines
 
 def label_parallel_branches(jobs_array):
+    df_list = []
     for job in jobs_array:
+        ops_list = []
+
         final_ops = []
         for op in job:
+            ops_list.append(op.op_num)
             if op.succ == None:
                 final_ops.append(op)
 
@@ -284,7 +266,22 @@ def label_parallel_branches(jobs_array):
                         oper.series = branch_label
                 branch_label = 'P' + str(int(branch_label[1]) + 1)
 
+        ops_list.sort()
+        op_df = pd.DataFrame(0, index=ops_list, columns=ops_list)
+        print(op_df)
+
+        for sequence in sequences:
+            for i in range(len(sequence)):
+                seqi = sequence[i]
+                for j in range(i+1, len(sequence)):
+                    seqj = sequence[j]
+
+                    op_df.at[seqi, seqj] = 1
+        
+        print(op_df)
+        df_list.append(op_df)
+
         #for op in job:
         #    print(op.op_num, op.series)
 
-    return jobs_array
+    return jobs_array, df_list

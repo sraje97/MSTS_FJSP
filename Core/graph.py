@@ -26,6 +26,17 @@ def get_graph_info(graph):
 def get_node_info(graph, node):
     return graph.nodes[node]
 
+# Get number of machine nodes
+def get_number_of_nodes(graph):
+    return graph.number_of_nodes()
+
+def get_op_schedule(graph):
+    res = nx.get_node_attributes(graph, 'op_schedule')
+    op_schedule = {}
+    for mach, schedule in res.items():
+        op_schedule[mach] = schedule
+    return op_schedule
+
 # Clear particular node's data
 def clear_node_data(graph, node, attribute):
     if attribute == 'op_schedule':

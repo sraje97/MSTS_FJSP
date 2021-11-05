@@ -13,7 +13,7 @@ def calculate_machining_time(machine_graph, machine):
 
 # Get transition time from previous operation's machine to current operation's machine
 def get_transition_time(machine_graph, machA, machB):
-    return machine_graph.edges[machA, machB]['weight']
+    return int(machine_graph.edges[machA, machB]['weight'])
 
 def get_best_node(p_queue):
     return min(p_queue, key=operator.itemgetter(2))
