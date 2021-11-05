@@ -36,7 +36,7 @@ def reset_times(schedules):
     return schedules
 
 def check_op_precedence(oper, left_op, op_df):
-    if op_df.at[oper, left_op] == 1:
+    if op_df.at[left_op, oper] == 1:
         return False
     return True
 
@@ -206,6 +206,9 @@ def recompute_times(jobs_array, machine_graph, schedules):
 def tabu_move(jobs_array, machine_graph, op_df, swap_method):
     solutions_list = []
     schedules = graph.get_op_schedule(machine_graph)
+
+    for schedule in schedules.values():
+        schedule.sort(key=lambda a: a[-1])
 
     if swap_method == "Critical Path":
         eligible_ops, mks = get_critical_path(jobs_array, schedules)

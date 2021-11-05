@@ -83,7 +83,7 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
         #print("Return ERT Schedule:", y)
         #print(graph.get_graph_info(machine_graph))
     
-    return jobs_array
+    return jobs_array, machine_graph
 
 def calculate_makespan(machine_graph):
     res = nx.get_node_attributes(machine_graph, 'op_schedule')
@@ -192,7 +192,7 @@ def msts(instances_file):
 
     # TODO:
     ## Get initial solution ##
-    curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+    curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
 
     # Create a copy of the current solution (jobs and machine graph)
     curr_solution = (copy.deepcopy(curr_jobs), copy.deepcopy(curr_graph))
@@ -261,31 +261,33 @@ def msts(instances_file):
 
             tabu_list.append(tabu_tuple)
 
+            curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
             local_best_mks = best_neighbourhood[-1]
-            local_best_sln = copy.deepcopy(best_neighbourhood[0], best_neighbourhood[1])
+            local_best_sln = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
 
             TS_cnt = 0
         else:
             # If the best_neighbour solution doesn't improve makespan, check this or other neighbours
             if tabu_list:
+                ## TODO: Fix check_tabu_status
                 # If tabu list exists check for non-tabu neighbourhood solution
-                if check_tabu_status(tabu_tuple[0], tabu_tuple[1]):
+                if check_tabu_status(tabu_tuple[0], tabu_tuple[1], tabu_list):
                     all_tabu = False
                     # Go through neighbours until we find a non-tabu solution
                     for neighbour in neighbourhood:
-                        if check_tabu_status(neighbour[2], neighbour[3]):
+                        if check_tabu_status(neighbour[2], neighbour[3], tabu_list):
                             if neighbour == neighbourhood[-1]:
                                 all_tabu = True
                             continue
                         tenure = calculate_tenure( len(neighbour[0]) , graph.get_number_of_nodes(neighbour[1]) )
                         tabu_tuple = (neighbour[2], neighbour[3], tenure)
-                        curr_solution = copy.deepcopy(neighbour[0], neighbour[1])
+                        curr_solution = (copy.deepcopy(neighbour[0]), copy.deepcopy(neighbour[1]))
                         break
                     if all_tabu:
                         # Store the best neighbour in case all neighbours are tabooed
                         tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
                         tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
-                        curr_solution = copy.deepcopy(best_neighbourhood[0], best_neighbourhood[1])
+                        curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
                 else:
                     # If best neighbourhood solution is non-tabu solution store it as the solution
                     tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
@@ -301,12 +303,13 @@ def msts(instances_file):
                 tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
                 tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
                 tabu_list.append(tabu_tuple)
-                curr_solution = copy.deepcopy(best_neighbourhood[0], best_neighbourhood[1])
+                curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
 
             TS_cnt += 1
 
         for tabu_tuple in tabu_list:
-            tabu_tuple[-1] -= 1
+            tenure = tabu_tuple[-1] - 1
+            tabu_tuple = (tabu_tuple[0], tabu_tuple[1], tenure)
             if tabu_tuple[-1] == 0:
                 tabu_list.remove(tabu_tuple)
 
