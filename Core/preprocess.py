@@ -33,6 +33,23 @@ def change_ops_labels(operations, machines):
 
     return operations, machines
 
+def create_precedence_table(ops_list, sequence):
+    ops_list.sort()
+    op_df = pd.DataFrame(0, index=ops_list, columns=ops_list)
+    #print(op_df)
+    for i in range(len(sequence)):
+        seqi = sequence[i]
+        if type(seqi) is tuple:
+            seqi = seqi[0]
+        for j in range(i+1, len(sequence)):
+            seqj = sequence[j]
+            if type(seqj) is tuple:
+                seqj = seqj[0]
+            op_df.at[seqi, seqj] = 1
+        
+    #print(op_df)
+    return op_df
+
 def recurse_reverse(jobarray, pre_op, branch):
     op = [item for item in jobarray if item.op_num == pre_op][0]
 
@@ -213,11 +230,16 @@ def label_parallel_branches(jobs_array):
             branchlist = recurse_reverse(job, final_ops[0].op_num, branchlist)
 
         #print(branchlist)
+        # Check if job has only sequential operations
         tupl_cnt = 0
         for ele in branchlist:
             if type(ele) is tuple:
                 tupl_cnt += 1
         if tupl_cnt == 1:
+            branchlist.reverse()
+            #print(branchlist)
+            op_df = create_precedence_table(ops_list, branchlist)
+            df_list.append(op_df)
             continue
 
         sequences = []
@@ -268,7 +290,7 @@ def label_parallel_branches(jobs_array):
 
         ops_list.sort()
         op_df = pd.DataFrame(0, index=ops_list, columns=ops_list)
-        print(op_df)
+        #print(op_df)
 
         for sequence in sequences:
             for i in range(len(sequence)):
@@ -278,7 +300,7 @@ def label_parallel_branches(jobs_array):
 
                     op_df.at[seqi, seqj] = 1
         
-        print(op_df)
+        #print(op_df)
         df_list.append(op_df)
 
         #for op in job:

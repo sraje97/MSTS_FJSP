@@ -12,7 +12,6 @@ import plotly.express as px
 import copy
 import timeit
 from prettytable import PrettyTable
-from criticalpath import Node
 
 
 
@@ -24,7 +23,6 @@ sys.path.append(base_dir)
 sys.path.append(os.path.join(base_dir, 'data'))
 
 ## IMPORT OUR MODULES
-from operation import Operation
 import preprocess
 import graph
 import machine_assignment
@@ -144,10 +142,10 @@ def msts(instances_file):
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "ERT"
+    OS_algo_choice = "LRMT"
 
-    epochs = 1
-    TS_cnt_max = 1
+    epochs = 5
+    TS_cnt_max = 5
     p_exp_con = 1.0
     swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
 
@@ -160,8 +158,8 @@ def msts(instances_file):
 
     # If test instances are DAFJS/YFJS, jobs may have parallel operations
     # Hence, label the branches of the parallel paths
-    if "DAFJS" in instances_file or "YFJS" in instances_file:
-        jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
+    #if "DAFJS" in instances_file or "YFJS" in instances_file:
+    jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
 
     machines_array.sort()
     G = nx.Graph()
@@ -199,13 +197,16 @@ def msts(instances_file):
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
 
+    local_best_sln = copy.deepcopy(curr_solution)
+    global_best_sln = copy.deepcopy(curr_solution)
+
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
     op_schedule = graph.get_op_schedule(curr_graph)
 
     # Create Gantt Chart
     # create_gantt_chart(curr_graph)
-    print(local_best_mks)
+    #print(local_best_mks)
 
 
     """
@@ -230,7 +231,18 @@ def msts(instances_file):
     while e_cnt < epochs:
         # Terminate program after 1 hour
         if (timeit.default_timer() - TS_start_time) > 600: #TODO: Change to 3600
-            break
+            curr_best_mks = calculate_makespan(curr_solution[1])
+            local_best_mks = calculate_makespan(local_best_sln[1])
+            global_best_mks = calculate_makespan(global_best_sln[1])
+            #best_mks = min( curr_mks, min(local_mks, global_mks) )
+            if curr_best_mks < local_best_mks:
+                if curr_best_mks < global_best_mks:
+                    return curr_solution, curr_best_mks
+                return global_best_sln, global_best_mks
+            else:
+                if local_best_mks < global_best_mks:
+                    return local_best_sln, local_best_mks
+                return global_best_sln, global_best_mks
 
         # Keep a copy of the previous solution
         prev_solution = copy.deepcopy(curr_solution)
@@ -307,11 +319,16 @@ def msts(instances_file):
 
             TS_cnt += 1
 
-        for tabu_tuple in tabu_list:
-            tenure = tabu_tuple[-1] - 1
-            tabu_tuple = (tabu_tuple[0], tabu_tuple[1], tenure)
-            if tabu_tuple[-1] == 0:
-                tabu_list.remove(tabu_tuple)
+        # Decrement the tenure of each tabu solution
+        i=0
+        while i < (len(tabu_list)):
+            tabu_tuple = list(tabu_list[i])
+            tabu_tuple[-1] -= 1
+            tabu_list[i] = tuple(tabu_tuple)
+            if tabu_list[i][-1] == 0:
+                tabu_list.remove(tabu_list[i])
+                i -= 1
+            i += 1
 
         if TS_cnt == TS_cnt_max:
             p = np.random.random()
@@ -336,6 +353,7 @@ def msts(instances_file):
                 curr_solution = global_best_sln
 
             p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
+            TS_cnt = 0
             e_cnt += 1
     
     return global_best_sln, global_best_mks
@@ -343,13 +361,12 @@ def msts(instances_file):
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
-    
+    """"""
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\DAFJS\DAFJS01.txt"
+    filename = "data\Benchmarks\YFJS\YFJS08.txt"
     sln, mks = msts(filename)
-    print(mks)
-    print("Time taken for", filename, ":", timeit.default_timer() - starttime)
-    
+    print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
+    """"""
     """
     print("## YFJS: ##")
     for i in range(20):
@@ -360,7 +377,7 @@ if __name__ == '__main__':
         filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
         sln, mks = msts(filename)
-        print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## DAFJS: ##")
@@ -372,14 +389,14 @@ if __name__ == '__main__':
         filename = "data\Benchmarks\DAFJS\DAFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
         sln, mks = msts(filename)
-        print("Time taken for", filename, ":", timeit.default_timer() - starttime)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """
+    """"""
     print("## YFJS: ##")
-    for i in range(18, 20):
+    for i in range(14, 20):
         file_num = str(i+1)
         filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
         sln, mks = msts(filename)
-        print("Time taken for", filename, ":", timeit.default_timer() - starttime)
-    """
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
+    """"""

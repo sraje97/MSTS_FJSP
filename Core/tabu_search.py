@@ -1,8 +1,9 @@
-from copy import deepcopy
 import random
-from criticalpath import Node
 import operator
+import timeit
 import networkx as nx
+from copy import deepcopy
+from criticalpath import Node
 
 import graph
 import machine_assignment
@@ -67,31 +68,31 @@ def get_critical_path(jobs_array, op_schedule):
 
     for job in jobs_array:
         for op in job:
-            print("Add Node:", op.op_num, op.processing_time)
+            #print("Add Node:", op.op_num, op.processing_time)
             op_num = op.op_num
             op_num = dj_graph.add(Node(op.op_num, duration=op.processing_time))
         for op in job:
             if type(op.succ) is list:
                 for succ in op.succ:
-                    print("Link Node (list):", op.op_num, succ)
+                    #print("Link Node (list):", op.op_num, succ)
                     dj_graph.link(op.op_num, succ)
             elif op.succ == None:
                 continue
             else:
-                print("Link Node (single):", op.op_num, op.succ)
+                #print("Link Node (single):", op.op_num, op.succ)
                 dj_graph.link(op.op_num, op.succ)
             #print(op.op_num, op.succ, op.processing_time)
 
     for key, val in op_schedule.items():
-        print(key, val)
+        #print(key, val)
         for i in range(len(val)-1):
-            print("Link Node (op_schedule):", val[i][0], val[i+1][0])
+            #print("Link Node (op_schedule):", val[i][0], val[i+1][0])
             dj_graph.link(val[i][0], val[i+1][0])
     
     dj_graph.update_all()
     CP = dj_graph.get_critical_path()
-    print(CP)
-    print(dj_graph.duration)
+    #print(CP)
+    #print(dj_graph.duration)
     return CP, dj_graph.duration
 
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
@@ -169,23 +170,33 @@ def recompute_times(jobs_array, machine_graph, schedules):
     next_executable_operations = []
 
     for val in schedules.values():
+        # If no operations assigned to this machine schedule
+        if len(val) == 0:
+            continue
         operation = val[0][0]
         next_executable_operations.append(operation)
+        #print(val)
 
     prev_exec_flag = False
+    deadlock_cnt = 0
 
     while next_executable_operations:
+        if deadlock_cnt == 100:
+            return -1, -1
         if not prev_exec_flag:
             operation = next_executable_operations[0]
         else:
             operation = random.choice(next_executable_operations)
             prev_exec_flag = False
+        #print(operation, next_executable_operations)
 
         operation, job_array = get_operation_job(jobs_array, operation)
 
         scheduled_operations, unscheduled = schedule_operation(job_array, operation, machine_graph, scheduled_operations)
         
         if unscheduled == -1:
+            #print(operation.op_num, next_executable_operations)
+            deadlock_cnt += 1
             prev_exec_flag = True
             continue
 
@@ -199,6 +210,8 @@ def recompute_times(jobs_array, machine_graph, schedules):
         next_executable_operations.append(oper_schedule[idx+1][0])
 
         next_executable_operations.remove(operation.op_num)
+
+        deadlock_cnt = 0
 
 
     return jobs_array, machine_graph
@@ -215,8 +228,15 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
         for i in range(len(eligible_ops)):
             eligible_ops[i] = eligible_ops[i].name
 
+    TS_start_time = timeit.default_timer()
+
     # TODO: Maybe get a random handful of eligible_ops instead of all?
     for oper in eligible_ops:
+        # If running for too long, return what you've got so far
+        if (timeit.default_timer() - TS_start_time) > 600: #TODO: Change to 3600
+            solutions_list.sort(key=lambda a: a[-1])
+            return solutions_list
+
         # Create a deepcopy for each unique operation
         oper_schedules = deepcopy(schedules)
         oper_jobs_array = deepcopy(jobs_array)
@@ -275,6 +295,10 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
             nx.set_node_attributes(oper_machine_graph, {machine: {'op_schedule': sched} } )
         
         oper_jobs_array, oper_machine_graph = recompute_times(oper_jobs_array, oper_machine_graph, oper_schedules)
+
+        # Deadlock occured hence skip this oper swap and continue to next one
+        if oper_jobs_array == -1:
+            continue
 
         _, _, makespan = calculate_makespan(oper_machine_graph)
 

@@ -1,10 +1,7 @@
 import operator
-from os import stat_result
 import networkx as nx
-from Core.machine_assignment import calculate_machining_time
 
 import machine_assignment
-import graph
 
 ############################################################
 
