@@ -46,6 +46,34 @@ def get_operation_job(jobs_array, oper):
     job_array = jobs_array[ int(oper_job) - 1]
     operation = [item for item in job_array if item.op_num == oper][0]
     return operation, job_array
+
+def get_insertion_pos(job, operation, op_df, op_schedule, mach):
+    valid_pos_list = []
+
+    # If first operation of job, will be able to be inserted anywhere
+    op_num = operation.op_num
+    op_label = op_num[op_num.find("_") + 1 : ]
+    if op_label == "1":
+        for pos in range(len(op_schedule)):
+            valid_pos_list.append( (pos, mach) )
+        return valid_pos_list
+    
+    pos = len(op_schedule) - 1
+
+    while pos != 0:
+        op_at_pos = op_schedule[pos][0]
+        job_at_pos = op_at_pos[op_at_pos.find("O") + 1 : op_at_pos.find("_")]
+        if job_at_pos == operation.job_num:
+            valid_precedence = check_op_precedence(op_at_pos, operation, op_df[ int(operation.job_num)-1 ])
+            if valid_precedence:
+                return valid_pos_list
+            valid_pos_list.append( (pos, mach) )
+        else:
+            valid_pos_list.append( (pos, mach) )
+        pos -= 1
+
+    return valid_pos_list
+
 """
 # Get the the earliest start time for an operation
 def get_start_time(operation, prev_operation, machine_graph):
@@ -89,7 +117,9 @@ def get_critical_path(jobs_array, op_schedule):
             #print("Link Node (op_schedule):", val[i][0], val[i+1][0])
             dj_graph.link(val[i][0], val[i+1][0])
     
+    #print("Updating DJ Graph", timeit.default_timer())
     dj_graph.update_all()
+    #print("Updated DJ Graph", timeit.default_timer())
     CP = dj_graph.get_critical_path()
     #print(CP)
     #print(dj_graph.duration)
@@ -182,6 +212,7 @@ def recompute_times(jobs_array, machine_graph, schedules):
 
     while next_executable_operations:
         if deadlock_cnt == 100:
+            #print("Returning")
             return -1, -1
         if not prev_exec_flag:
             operation = next_executable_operations[0]
@@ -222,87 +253,152 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
 
     for schedule in schedules.values():
         schedule.sort(key=lambda a: a[-1])
+        #print(schedule)
 
-    if swap_method == "Critical Path":
-        eligible_ops, mks = get_critical_path(jobs_array, schedules)
+    if swap_method[0:13] == "Critical Path":
+        eligible_ops, _ = get_critical_path(jobs_array, schedules)
         for i in range(len(eligible_ops)):
             eligible_ops[i] = eligible_ops[i].name
 
     TS_start_time = timeit.default_timer()
+    #print("Start time Tabu move:", TS_start_time)
 
     # TODO: Maybe get a random handful of eligible_ops instead of all?
     for oper in eligible_ops:
         # If running for too long, return what you've got so far
         if (timeit.default_timer() - TS_start_time) > 600: #TODO: Change to 3600
+            #print("Time overboard")
             solutions_list.sort(key=lambda a: a[-1])
             return solutions_list
+        
+        if swap_method[-2:] == "OS":
 
-        # Create a deepcopy for each unique operation
-        oper_schedules = deepcopy(schedules)
-        oper_jobs_array = deepcopy(jobs_array)
-        oper_machine_graph = deepcopy(machine_graph)
+            # Create a deepcopy for each unique operation
+            oper_schedules = deepcopy(schedules)
+            oper_jobs_array = deepcopy(jobs_array)
+            oper_machine_graph = deepcopy(machine_graph)
 
-        # Find the machine and index of the operation in the machine schedule
-        mach, idx = find_mach(oper, schedules)
+            # Find the machine and index of the operation in the machine schedule
+            mach, idx = find_mach(oper, schedules)
 
-        # Get the machine of the particular operation
-        oper_schedule = oper_schedules[mach]
+            # Get the machine of the particular operation
+            oper_schedule = oper_schedules[mach]
 
-        # Can't swap to the left if operation is in first position
-        if idx == 0:
-            continue
-
-        # Get the neighbouring operation (from the left)
-        left_op = oper_schedule[idx-1][0]
-        left_job = left_op[left_op.find("O") + 1 : left_op.find("_")]
-        oper_job = oper[oper.find("O") + 1 : oper.find("_")]
-
-        # If both operations belong to same job, ensure precedence constraints
-        # are not being violated
-        if left_job == oper_job:
-            swap_isvalid = check_op_precedence(oper, left_op, op_df[int(oper_job) - 1])
-            if not swap_isvalid:
+            # Can't swap to the left if operation is in first position
+            if idx == 0:
                 continue
-            oper_schedule[idx-1] = (oper, 0, 0)
-            oper_schedule[idx] = (left_op, 0, 0)
+
+            # Get the neighbouring operation (from the left)
+            left_op = oper_schedule[idx-1][0]
+            left_job = left_op[left_op.find("O") + 1 : left_op.find("_")]
+            oper_job = oper[oper.find("O") + 1 : oper.find("_")]
+
+            # If both operations belong to same job, ensure precedence constraints
+            # are not being violated
+            if left_job == oper_job:
+                swap_isvalid = check_op_precedence(oper, left_op, op_df[int(oper_job) - 1])
+                if not swap_isvalid:
+                    continue
+                oper_schedule[idx-1] = (oper, 0, 0)
+                oper_schedule[idx] = (left_op, 0, 0)
+            else:
+                oper_schedule[idx-1] = (oper, 0, 0)
+                oper_schedule[idx] = (left_op, 0, 0)
+            
+            # TODO: Recompute Times
+            oper_schedules = reset_times(oper_schedules)
+
+            for machine, sched in oper_schedules.items():
+                nx.set_node_attributes(oper_machine_graph, {machine: {'op_schedule': sched} } )
+            
+            oper_jobs_array, oper_machine_graph = recompute_times(oper_jobs_array, oper_machine_graph, oper_schedules)
+
+            # Deadlock occured hence skip this oper swap and continue to next one
+            if oper_jobs_array == -1:
+                continue
+
+            _, _, makespan = calculate_makespan(oper_machine_graph)
+
+            solutions_list.append((oper_jobs_array, oper_machine_graph, oper, mach, makespan))
+        
+        elif swap_method[-2:] == "MA":
+            operation, job = get_operation_job(jobs_array, oper)
+            eligible_machines = operation.machines
+            insertion_positions = []
+
+            for machine in eligible_machines:
+                if machine[0] == operation.mach_num:
+                    continue
+                op_schedule = machine_graph.nodes[machine[0]]['op_schedule']
+
+                # TODO: Check from end of op_schedule, all valid positions where oper can be inserted
+                valid_poses = get_insertion_pos(job, operation, op_df, op_schedule, machine[0])
+                insertion_positions += valid_poses
+            
+            # If no alternate eligible machines or valid positions, then skip operation
+            if not insertion_positions:
+                continue
+            
+            for pos, mach in insertion_positions:
+                oper_jobs_array = deepcopy(jobs_array)
+                oper_machine_graph = deepcopy(machine_graph)
+                oper_schedules = graph.get_op_schedule(oper_machine_graph)
+                operation, job = get_operation_job(oper_jobs_array, oper)
+
+                # Delete the operation from its old position
+                old_mach, idx = find_mach(oper, schedules)
+                old_oper_schedule = oper_schedules[old_mach]
+                del old_oper_schedule[idx]
+
+                oper_schedule = oper_schedules[mach]
+                #op_schedule = oper_machine_graph.nodes[mach]['op_schedule']        # REPLACE WITH THIS IF WE REMOVE SCHEDULES
+                oper_schedule.insert( pos, (oper, 0, 0) )
+
+                # Change operation's assigned machine and update processing time for new machine
+                operation.mach_num = mach
+                for ele in operation.machines:
+                    if ele[0] == mach:
+                        machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
+                        break
+                operation.processing_time = machining_time
+
+                oper_schedules = reset_times(oper_schedules)
+
+                for machine, sched in oper_schedules.items():
+                    nx.set_node_attributes(oper_machine_graph, {machine: {'op_schedule': sched} } )
+
+                oper_jobs_array, oper_machine_graph = recompute_times(oper_jobs_array, oper_machine_graph, oper_schedules)
+
+                # Deadlock occured hence skip this oper swap and continue to next one
+                if oper_jobs_array == -1:
+                    continue
+
+                _, _, makespan = calculate_makespan(oper_machine_graph)
+
+                solutions_list.append((oper_jobs_array, oper_machine_graph, oper, mach, makespan))
+
+
+            pass
+            """ # WILL ONLY NEED THIS FOR OPERATION SWAP TO ANOTHER MACHINE
+            # Change machine number for oper and left_job and update processing time
+            oper_job_array = oper_jobs_array[ int(oper_job) - 1]
+            op = [item for item in oper_job_array if item.op_num == oper][0]
+            op.mach_num = mach
+            for ele in op.machines:
+                if ele[0] == mach:
+                    machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
+            op.processing_time = machining_time
+
+            oper_job_array = oper_jobs_array[ int(left_job) - 1]
+            op = [item for item in oper_job_array if item.op_num == left_op][0]
+            op.mach_num = mach
+            for ele in op.machines:
+                if ele[0] == mach:
+                    machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
+            op.processing_time = machining_time
+            """
         else:
-            oper_schedule[idx-1] = (oper, 0, 0)
-            oper_schedule[idx] = (left_op, 0, 0)
-
-        """ # WILL ONLY NEED THIS FOR OPERATION SWAP TO ANOTHER MACHINE
-        # Change machine number for oper and left_job and update processing time
-        oper_job_array = oper_jobs_array[ int(oper_job) - 1]
-        op = [item for item in oper_job_array if item.op_num == oper][0]
-        op.mach_num = mach
-        for ele in op.machines:
-            if ele[0] == mach:
-                machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
-        op.processing_time = machining_time
-
-        oper_job_array = oper_jobs_array[ int(left_job) - 1]
-        op = [item for item in oper_job_array if item.op_num == left_op][0]
-        op.mach_num = mach
-        for ele in op.machines:
-            if ele[0] == mach:
-                machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
-        op.processing_time = machining_time
-        """
-        
-        # TODO: Recompute Times
-        oper_schedules = reset_times(oper_schedules)
-
-        for machine, sched in oper_schedules.items():
-            nx.set_node_attributes(oper_machine_graph, {machine: {'op_schedule': sched} } )
-        
-        oper_jobs_array, oper_machine_graph = recompute_times(oper_jobs_array, oper_machine_graph, oper_schedules)
-
-        # Deadlock occured hence skip this oper swap and continue to next one
-        if oper_jobs_array == -1:
-            continue
-
-        _, _, makespan = calculate_makespan(oper_machine_graph)
-
-        solutions_list.append((oper_jobs_array, oper_machine_graph, oper, mach, makespan))
+            print("Incorrect swap method")
 
     # Sort neighbourhood by ascending makespan value
     solutions_list.sort(key=lambda a: a[-1])

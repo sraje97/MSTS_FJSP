@@ -142,7 +142,8 @@ def msts(instances_file):
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "LRMT"
+    OS_algo_choice = "ERT"
+    print(OS_algo_choice)
 
     epochs = 5
     TS_cnt_max = 5
@@ -202,7 +203,7 @@ def msts(instances_file):
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
-    op_schedule = graph.get_op_schedule(curr_graph)
+    #op_schedule = graph.get_op_schedule(curr_graph)
 
     # Create Gantt Chart
     # create_gantt_chart(curr_graph)
@@ -226,11 +227,13 @@ def msts(instances_file):
     global_TS_cnt = 0   # Global Tabu Search counter
     tabu_list = []
 
-    TS_start_time = timeit.default_timer()
+    MSTS_start_time = timeit.default_timer()
 
     while e_cnt < epochs:
+        #print("Started epochs", e_cnt)
         # Terminate program after 1 hour
-        if (timeit.default_timer() - TS_start_time) > 600: #TODO: Change to 3600
+        if (timeit.default_timer() - MSTS_start_time) > 600: #TODO: Change to 3600
+            print("Overtime! Epochs:", e_cnt)
             curr_best_mks = calculate_makespan(curr_solution[1])
             local_best_mks = calculate_makespan(local_best_sln[1])
             global_best_mks = calculate_makespan(global_best_sln[1])
@@ -249,12 +252,12 @@ def msts(instances_file):
 
         # Get random swap method
         #swap_method = np.random.choice(swap_methods)
-        swap_method = "Critical Path"
+        swap_method = "Critical Path MA"
 
 
         ## TODO: CONDUCT SWAP ##
         # Neighbourhood Tuple : (jobs_array, machine_graph, oper, mach, mks)
-        neighbourhood = tabu_search.tabu_move(curr_solution[0], curr_solution[1], op_df, "Critical Path")
+        neighbourhood = tabu_search.tabu_move(curr_solution[0], curr_solution[1], op_df, swap_method)
         best_neighbourhood = neighbourhood[0]
         # Tabu Tuple outline: (operation, machine, tabu_tenure)
         tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3])
@@ -348,6 +351,8 @@ def msts(instances_file):
                 tabu_list = []
 
                 ## Get initial solution ##
+                #OS_algo_choice = np.random.choice(['LRMT', 'ERT'])
+                #print(OS_algo_choice)
                 curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
             else:
                 curr_solution = global_best_sln
@@ -361,13 +366,13 @@ def msts(instances_file):
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
-    """"""
+    """
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\YFJS\YFJS08.txt"
+    filename = "data\Benchmarks\DAFJS\DAFJS01.txt"
     sln, mks = msts(filename)
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
     """
+    """"""
     print("## YFJS: ##")
     for i in range(20):
         if i < 9:
@@ -376,9 +381,10 @@ if __name__ == '__main__':
             file_num = str(i+1)
         filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
+        print(starttime)
         sln, mks = msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## DAFJS: ##")
     for i in range(30):
@@ -391,7 +397,31 @@ if __name__ == '__main__':
         sln, mks = msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """"""
+    """
+    print("## SFJS: ##")
+    for i in range(10):
+        if i < 9:
+            file_num = "0" + str(i+1)
+        else:
+            file_num = str(i+1)
+        filename = "data\Benchmarks\FMJ\sfjs" + file_num + ".txt"
+        starttime = timeit.default_timer()
+        sln, mks = msts(filename)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
+    """
+    """
+    print("## MFJS: ##")
+    for i in range(10):
+        if i < 9:
+            file_num = "0" + str(i+1)
+        else:
+            file_num = str(i+1)
+        filename = "data\Benchmarks\FMJ\mfjs" + file_num + ".txt"
+        starttime = timeit.default_timer()
+        sln, mks = msts(filename)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
+    """
+    """
     print("## YFJS: ##")
     for i in range(14, 20):
         file_num = str(i+1)
@@ -399,4 +429,4 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         sln, mks = msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
