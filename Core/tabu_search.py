@@ -49,46 +49,41 @@ def get_operation_job(jobs_array, oper):
 
 def get_insertion_pos(job, operation, op_df, op_schedule, mach):
     valid_pos_list = []
+    same_jobs = []
 
-    # If first operation of job, will be able to be inserted anywhere
-    op_num = operation.op_num
-    op_label = op_num[op_num.find("_") + 1 : ]
-    if op_label == "1":
-        for pos in range(len(op_schedule)):
+    # If the machine schedule is empty (i.e. no assigned operations)
+    if not op_schedule:
+        valid_pos_list.append( (0, mach) )
+        return valid_pos_list
+
+    # Get list of all operations in schedule which are from the same job
+    for i in range(len(op_schedule)):
+        op =  op_schedule[i][0]
+        op_job = op[op.find("O") + 1 : op.find("_")]
+        if op_job == operation.job_num[1:]:
+            same_jobs.append((op, i))
+    
+    # If no operations from the same job, then curr operation can be 
+    # inserted at any position
+    if not same_jobs:
+        for pos in range(len(op_schedule)+1):
             valid_pos_list.append( (pos, mach) )
         return valid_pos_list
     
-    pos = len(op_schedule) - 1
-
-    while pos != 0:
-        op_at_pos = op_schedule[pos][0]
-        job_at_pos = op_at_pos[op_at_pos.find("O") + 1 : op_at_pos.find("_")]
-        if job_at_pos == operation.job_num:
-            valid_precedence = check_op_precedence(op_at_pos, operation, op_df[ int(operation.job_num)-1 ])
-            if valid_precedence:
-                return valid_pos_list
-            valid_pos_list.append( (pos, mach) )
-        else:
-            valid_pos_list.append( (pos, mach) )
-        pos -= 1
+    max_pos = len(op_schedule)
+    min_pos = -1
+    op_job = operation.job_num[1:]
+    for op, pos in same_jobs:
+        if not check_op_precedence(op, operation.op_num, op_df[ int(op_job)-1 ]):
+            max_pos = pos
+        if not check_op_precedence(operation.op_num, op, op_df[ int(op_job)-1 ]):
+            min_pos = pos
+    
+    for i in range(min_pos, max_pos):
+        valid_pos_list.append( (i+1, mach) )
 
     return valid_pos_list
 
-"""
-# Get the the earliest start time for an operation
-def get_start_time(operation, prev_operation, machine_graph):
-    machine = operation.mach_num
-    
-    # Get machine's schedule
-    op_schedule = machine_graph.nodes[machine]['op_schedule']
-    machine_finish_time = get_machine_finish_time(op_schedule)
-    
-    # Find the latest time an operation may start
-    if prev_operation == None:
-        return machine_finish_time[-1]
-    else:
-        return max(prev_operation.finish_time, machine_finish_time[-1])
-"""
 ############################################################
 
 def get_critical_path(jobs_array, op_schedule):

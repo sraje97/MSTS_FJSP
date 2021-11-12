@@ -142,7 +142,7 @@ def msts(instances_file):
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "ERT"
+    OS_algo_choice = "LRMT"
     print(OS_algo_choice)
 
     epochs = 5
@@ -368,7 +368,7 @@ def msts(instances_file):
 if __name__ == '__main__':
     """
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\DAFJS\DAFJS01.txt"
+    filename = "data\Benchmarks\YFJS\YFJS08.txt"
     sln, mks = msts(filename)
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
@@ -385,7 +385,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """"""
-    """
+    """"""
     print("## DAFJS: ##")
     for i in range(30):
         if i < 9:
@@ -396,7 +396,7 @@ if __name__ == '__main__':
         starttime = timeit.default_timer()
         sln, mks = msts(filename)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## SFJS: ##")
     for i in range(10):
