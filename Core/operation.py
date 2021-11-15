@@ -1,7 +1,3 @@
-# Import python packages
-import os
-import numpy as np
-
 ############################################################
 
 class Operation:

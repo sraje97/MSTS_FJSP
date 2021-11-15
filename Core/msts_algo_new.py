@@ -1,18 +1,18 @@
 ############################################################
 
 ## IMPORT PYTHON PACKAGES
-from posixpath import splitext
 import sys
 import os
+import csv
+import copy
+import timeit
 import numpy as np
 import pandas as pd
 import networkx as nx
 import plotly.graph_objects as go
 import plotly.express as px
-import copy
-import timeit
+from datetime import datetime
 from prettytable import PrettyTable
-
 
 
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
@@ -30,6 +30,16 @@ import operation_scheduling
 import tabu_search
 
 ############################################################
+
+def get_time_stamp():
+    now = datetime.now()
+    year = now.strftime('%Y')
+    month = now.strftime('%m')
+    day = now.strftime('%d')
+    hour = now.strftime('%H')
+    minute = now.strftime('%M')
+    second = now.strftime('%S')
+    return '{}-{}-{}-{}-{}-{}'.format(day, month, year, hour, minute, second)
 
 def print_job_info(jobs_array):
     table = PrettyTable(['Job', 'Operation', 'Pre', 'Succ', 'Series', 'Machines', 'Assigned Machine'])
@@ -132,7 +142,7 @@ def create_gantt_chart(machine_graph):
         d.x = gantt_df[filt]['Delta'].tolist()
     fig.show()
 
-def msts(instances_file):
+def msts(instances_file, save_dir):
     ############################################################
     #               INITIALIALISE JOBS + MACHINES              #
     ############################################################
@@ -144,6 +154,14 @@ def msts(instances_file):
     MA_algo_choice = "greedy"
     OS_algo_choice = "LRMT"
     print(OS_algo_choice)
+
+    basename = os.path.basename(instances_file)
+    save_dir = os.path.join(save_dir, basename[:-4])
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+    except OSError:
+        pass
+
 
     epochs = 5
     TS_cnt_max = 5
@@ -168,18 +186,10 @@ def msts(instances_file):
         #print(machine)
         graph.add_node(G, machine)
     
-    if os.path.splitext(instances_file)[1] == '.txt':
+    if basename[-4:] == '.txt':
         trans_times = np.zeros((len(machines_array), len(machines_array)))
         graph.add_edge_costs(G, trans_times, machines_array)
     
-    #print_job_info(jobs_array)
-
-    #print("Printing Graph")
-    #print(graph.get_graph_info(G))
-
-    #print("Printing Node")
-    #print(graph.get_node_info(G, 'M1'))
-
     # If machine assignment algorithm not pre-specified, choose randomly
     if MA_algo_choice == "":
         MA_algo_choice = np.random.choice(['Random', 'Greedy', 'Shortest Path'], p=[0.35, 0.35, 0.3])
@@ -211,10 +221,7 @@ def msts(instances_file):
 
 
     """
-    sorted_jobs = tabu_search.flatten_job(curr_jobs)
-    for job in sorted_jobs:
-        for oper in job:
-            print(oper.op_num, oper.job_num, oper.series, oper.processing_time)
+
     """
     
 
@@ -228,6 +235,10 @@ def msts(instances_file):
     tabu_list = []
 
     MSTS_start_time = timeit.default_timer()
+
+    # Initialise saves folders and files
+    fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
+    fp_log.close()
 
     while e_cnt < epochs:
         #print("Started epochs", e_cnt)
@@ -360,19 +371,57 @@ def msts(instances_file):
             p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
             TS_cnt = 0
             e_cnt += 1
+
+    design_csv_path = os.path.join(save_dir, 'best_design.csv')
+    fp_csv = open(design_csv_path, 'w', newline='')
+    writer = csv.writer(fp_csv)
+
+    writer.writerow(['Makespan', repr(global_best_mks), 'Time', timeit.default_timer() - MSTS_start_time])
+
+    writer.writerow(["Machine", "Machine_schedule"])
+
+    schedule = graph.get_op_schedule(global_best_sln[1])
+    for key, val in schedule.items():
+        writer.writerow([repr(key), repr(val)])
+    
+    writer.writerow(['Job', 'Operation'])
+    
+    sorted_jobs = tabu_search.flatten_job(global_best_sln[0])
+    for job in sorted_jobs:
+        for oper in job:
+            writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
+                            oper.mach_num, oper.processing_time, oper.setup_time, oper.finish_time])
+    
+    fp_csv.close()
     
     return global_best_sln, global_best_mks
 
 
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
+
+    # Output folder to save to
+    save_dir = os.path.join(base_dir, 'output_models/', get_time_stamp())
+
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+    except OSError:
+        pass
+
+
+    # Create output argument text file
+    fp = open(os.path.join(save_dir, 'args.txt'), 'w')
+    fp.write(str("THESE WERE THE INPUT ARGUMENTS"))
+    fp.close()
+
+
     """
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\YFJS\YFJS08.txt"
-    sln, mks = msts(filename)
+    filename = "data\Benchmarks\YFJS\YFJS01.txt"
+    sln, mks = msts(filename, save_dir)
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """"""
+    """
     print("## YFJS: ##")
     for i in range(20):
         if i < 9:
@@ -382,10 +431,10 @@ if __name__ == '__main__':
         filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
         print(starttime)
-        sln, mks = msts(filename)
+        sln, mks = msts(filename, save_dir)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
-    """"""
+    """
+    """
     print("## DAFJS: ##")
     for i in range(30):
         if i < 9:
@@ -394,9 +443,9 @@ if __name__ == '__main__':
             file_num = str(i+1)
         filename = "data\Benchmarks\DAFJS\DAFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
-        sln, mks = msts(filename)
+        sln, mks = msts(filename, save_dir)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
     """
     print("## SFJS: ##")
     for i in range(10):
@@ -406,7 +455,7 @@ if __name__ == '__main__':
             file_num = str(i+1)
         filename = "data\Benchmarks\FMJ\sfjs" + file_num + ".txt"
         starttime = timeit.default_timer()
-        sln, mks = msts(filename)
+        sln, mks = msts(filename, save_dir)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
@@ -418,7 +467,7 @@ if __name__ == '__main__':
             file_num = str(i+1)
         filename = "data\Benchmarks\FMJ\mfjs" + file_num + ".txt"
         starttime = timeit.default_timer()
-        sln, mks = msts(filename)
+        sln, mks = msts(filename, save_dir)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
@@ -427,6 +476,6 @@ if __name__ == '__main__':
         file_num = str(i+1)
         filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
         starttime = timeit.default_timer()
-        sln, mks = msts(filename)
+        sln, mks = msts(filename, save_dir)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
