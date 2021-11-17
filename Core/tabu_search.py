@@ -243,6 +243,7 @@ def recompute_times(jobs_array, machine_graph, schedules):
     return jobs_array, machine_graph
 
 def tabu_move(jobs_array, machine_graph, op_df, swap_method):
+    best_solutions = []
     solutions_list = []
     schedules = graph.get_op_schedule(machine_graph)
 
@@ -263,8 +264,11 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
         # If running for too long, return what you've got so far
         if (timeit.default_timer() - TS_start_time) > 600: #TODO: Change to 3600
             #print("Time overboard")
-            solutions_list.sort(key=lambda a: a[-1])
-            return solutions_list
+            best_solutions.sort(key=lambda a: a[-1])
+            return best_solutions
+
+            # solutions_list.sort(key=lambda a: a[-1])
+            #return solutions_list
         
         if swap_method[-2:] == "OS":
 
@@ -372,30 +376,22 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
 
                 solutions_list.append((oper_jobs_array, oper_machine_graph, oper, mach, makespan))
 
-
-            pass
-            """ # WILL ONLY NEED THIS FOR OPERATION SWAP TO ANOTHER MACHINE
-            # Change machine number for oper and left_job and update processing time
-            oper_job_array = oper_jobs_array[ int(oper_job) - 1]
-            op = [item for item in oper_job_array if item.op_num == oper][0]
-            op.mach_num = mach
-            for ele in op.machines:
-                if ele[0] == mach:
-                    machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
-            op.processing_time = machining_time
-
-            oper_job_array = oper_jobs_array[ int(left_job) - 1]
-            op = [item for item in oper_job_array if item.op_num == left_op][0]
-            op.mach_num = mach
-            for ele in op.machines:
-                if ele[0] == mach:
-                    machining_time = machine_assignment.calculate_machining_time(oper_machine_graph, ele)
-            op.processing_time = machining_time
-            """
         else:
             print("Incorrect swap method")
 
-    # Sort neighbourhood by ascending makespan value
-    solutions_list.sort(key=lambda a: a[-1])
+        solutions_list.sort(key=lambda a: a[-1])
+        if len(solutions_list) >= 10:
+            best_solutions += solutions_list[:10]
+        else:
+            best_solutions += solutions_list
+        
+        # Empty solutions list
+        solutions_list = []
 
-    return solutions_list
+    # Sort neighbourhood by ascending makespan value
+    best_solutions.sort(key=lambda a: a[-1])
+    return best_solutions
+    
+    #solutions_list.sort(key=lambda a: a[-1])
+
+    #return solutions_list

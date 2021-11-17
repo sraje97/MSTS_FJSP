@@ -4,13 +4,13 @@
 import sys
 import os
 import csv
-import copy
 import timeit
 import numpy as np
 import pandas as pd
 import networkx as nx
 import plotly.graph_objects as go
 import plotly.express as px
+from copy import deepcopy
 from datetime import datetime
 from prettytable import PrettyTable
 
@@ -152,7 +152,7 @@ def msts(instances_file, save_dir):
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "LRMT"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     basename = os.path.basename(instances_file)
@@ -196,20 +196,20 @@ def msts(instances_file, save_dir):
     if OS_algo_choice == '':
         OS_algo_choice = np.random.choice(['SMT', 'LRMT', 'ERT']) #, p=[0.35, 0.35, 0.3])
 
-    curr_jobs = copy.deepcopy(jobs_array)
-    curr_graph = copy.deepcopy(G)
+    curr_jobs = deepcopy(jobs_array)
+    curr_graph = deepcopy(G)
 
     # TODO:
     ## Get initial solution ##
     curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
 
     # Create a copy of the current solution (jobs and machine graph)
-    curr_solution = (copy.deepcopy(curr_jobs), copy.deepcopy(curr_graph))
+    curr_solution = (deepcopy(curr_jobs), deepcopy(curr_graph))
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
 
-    local_best_sln = copy.deepcopy(curr_solution)
-    global_best_sln = copy.deepcopy(curr_solution)
+    local_best_sln = deepcopy(curr_solution)
+    global_best_sln = deepcopy(curr_solution)
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
@@ -245,10 +245,25 @@ def msts(instances_file, save_dir):
         # Terminate program after 1 hour
         if (timeit.default_timer() - MSTS_start_time) > 600: #TODO: Change to 3600
             print("Overtime! Epochs:", e_cnt)
-            curr_best_mks = calculate_makespan(curr_solution[1])
-            local_best_mks = calculate_makespan(local_best_sln[1])
-            global_best_mks = calculate_makespan(global_best_sln[1])
+            break
+            
+            """
+            _, _, curr_best_mks = calculate_makespan(curr_solution[1])
+            _, _, local_best_mks = calculate_makespan(local_best_sln[1])
+            _, _, global_best_mks = calculate_makespan(global_best_sln[1])
             #best_mks = min( curr_mks, min(local_mks, global_mks) )
+
+            if curr_best_mks < local_best_mks:
+                if curr_best_mks < global_best_mks:
+                    global_best_sln = curr_solution
+                    global_best_mks = curr_best_mks
+            else:
+                if local_best_mks < global_best_mks:
+                    global_best_sln = local_best_sln
+                    global_best_mks = local_best_mks
+            break
+            """
+            """
             if curr_best_mks < local_best_mks:
                 if curr_best_mks < global_best_mks:
                     return curr_solution, curr_best_mks
@@ -257,9 +272,10 @@ def msts(instances_file, save_dir):
                 if local_best_mks < global_best_mks:
                     return local_best_sln, local_best_mks
                 return global_best_sln, global_best_mks
+            """
 
         # Keep a copy of the previous solution
-        prev_solution = copy.deepcopy(curr_solution)
+        prev_solution = deepcopy(curr_solution)
 
         # Get random swap method
         #swap_method = np.random.choice(swap_methods)
@@ -269,70 +285,74 @@ def msts(instances_file, save_dir):
         ## TODO: CONDUCT SWAP ##
         # Neighbourhood Tuple : (jobs_array, machine_graph, oper, mach, mks)
         neighbourhood = tabu_search.tabu_move(curr_solution[0], curr_solution[1], op_df, swap_method)
-        best_neighbourhood = neighbourhood[0]
-        # Tabu Tuple outline: (operation, machine, tabu_tenure)
-        tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3])
+        if neighbourhood:
+            best_neighbourhood = neighbourhood[0]
+            # Tabu Tuple outline: (operation, machine, tabu_tenure)
+            tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3])
 
-        # If there is an improvement in the makespan, keep the best neighbourhood solution
-        if best_neighbourhood[-1] < local_best_mks:
-            if tabu_list:
-                for tupl in tabu_list:
-                    if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
-                        tabu_list.remove(tupl)
-                        break
-            
-            tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
+            # If there is an improvement in the makespan, keep the best neighbourhood solution
+            if best_neighbourhood[-1] < local_best_mks:
+                if tabu_list:
+                    for tupl in tabu_list:
+                        if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
+                            tabu_list.remove(tupl)
+                            break
+                
+                tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
 
-            tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
+                tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
 
-            tabu_list.append(tabu_tuple)
+                tabu_list.append(tabu_tuple)
 
-            curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
-            local_best_mks = best_neighbourhood[-1]
-            local_best_sln = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
+                curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                local_best_mks = best_neighbourhood[-1]
+                local_best_sln = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
 
-            TS_cnt = 0
-        else:
-            # If the best_neighbour solution doesn't improve makespan, check this or other neighbours
-            if tabu_list:
-                ## TODO: Fix check_tabu_status
-                # If tabu list exists check for non-tabu neighbourhood solution
-                if check_tabu_status(tabu_tuple[0], tabu_tuple[1], tabu_list):
-                    all_tabu = False
-                    # Go through neighbours until we find a non-tabu solution
-                    for neighbour in neighbourhood:
-                        if check_tabu_status(neighbour[2], neighbour[3], tabu_list):
-                            if neighbour == neighbourhood[-1]:
-                                all_tabu = True
-                            continue
-                        tenure = calculate_tenure( len(neighbour[0]) , graph.get_number_of_nodes(neighbour[1]) )
-                        tabu_tuple = (neighbour[2], neighbour[3], tenure)
-                        curr_solution = (copy.deepcopy(neighbour[0]), copy.deepcopy(neighbour[1]))
-                        break
-                    if all_tabu:
-                        # Store the best neighbour in case all neighbours are tabooed
+                TS_cnt = 0
+            else:
+                # If the best_neighbour solution doesn't improve makespan, check this or other neighbours
+                if tabu_list:
+                    ## TODO: Fix check_tabu_status
+                    # If tabu list exists check for non-tabu neighbourhood solution
+                    if check_tabu_status(tabu_tuple[0], tabu_tuple[1], tabu_list):
+                        all_tabu = False
+                        # Go through neighbours until we find a non-tabu solution
+                        for neighbour in neighbourhood:
+                            if check_tabu_status(neighbour[2], neighbour[3], tabu_list):
+                                if neighbour == neighbourhood[-1]:
+                                    all_tabu = True
+                                continue
+                            tenure = calculate_tenure( len(neighbour[0]) , graph.get_number_of_nodes(neighbour[1]) )
+                            tabu_tuple = (neighbour[2], neighbour[3], tenure)
+                            curr_solution = (deepcopy(neighbour[0]), deepcopy(neighbour[1]))
+                            break
+                        if all_tabu:
+                            # Store the best neighbour in case all neighbours are tabooed
+                            tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
+                            tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
+                            curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                    else:
+                        # If best neighbourhood solution is non-tabu solution store it as the solution
                         tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
                         tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
-                        curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
+                    
+                    for tupl in tabu_list:
+                        if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
+                            tabu_list.remove(tupl)
+                    tabu_list.append(tabu_tuple)
+
                 else:
-                    # If best neighbourhood solution is non-tabu solution store it as the solution
+                    # If no tabu_list then just add this straight away
                     tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
                     tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
-                
-                for tupl in tabu_list:
-                    if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
-                        tabu_list.remove(tupl)
-                tabu_list.append(tabu_tuple)
+                    tabu_list.append(tabu_tuple)
+                    curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
 
-            else:
-                # If no tabu_list then just add this straight away
-                tenure = calculate_tenure( len(best_neighbourhood[0]) , graph.get_number_of_nodes(best_neighbourhood[1]) )
-                tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
-                tabu_list.append(tabu_tuple)
-                curr_solution = (copy.deepcopy(best_neighbourhood[0]), copy.deepcopy(best_neighbourhood[1]))
-
+                TS_cnt += 1
+        else:
             TS_cnt += 1
-
+            curr_solution = (deepcopy(local_best_sln[0]), deepcopy(local_best_sln[1]))
+        
         # Decrement the tenure of each tabu solution
         i=0
         while i < (len(tabu_list)):
@@ -349,14 +369,14 @@ def msts(instances_file, save_dir):
 
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
-                global_best_sln = copy.deepcopy(local_best_sln)
+                global_best_sln = deepcopy(local_best_sln)
                 global_TS_cnt = 0
             else:
                 global_TS_cnt += 1
             
             if p < p_exp_con:
-                curr_jobs = copy.deepcopy(jobs_array)
-                curr_graph = copy.deepcopy(G)
+                curr_jobs = deepcopy(jobs_array)
+                curr_graph = deepcopy(G)
 
                 # Empty tabu list
                 tabu_list = []
@@ -364,7 +384,8 @@ def msts(instances_file, save_dir):
                 ## Get initial solution ##
                 #OS_algo_choice = np.random.choice(['LRMT', 'ERT'])
                 #print(OS_algo_choice)
-                curr_jobs = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+                curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+                curr_solution = (curr_jobs, curr_graph)
             else:
                 curr_solution = global_best_sln
 
@@ -372,11 +393,25 @@ def msts(instances_file, save_dir):
             TS_cnt = 0
             e_cnt += 1
 
+    _, _, curr_best_mks = calculate_makespan(curr_solution[1])
+    _, _, local_best_mks = calculate_makespan(local_best_sln[1])
+    _, _, global_best_mks = calculate_makespan(global_best_sln[1])
+    if curr_best_mks < local_best_mks:
+        if curr_best_mks < global_best_mks:
+            global_best_sln = curr_solution
+            global_best_mks = curr_best_mks
+    else:
+        if local_best_mks < global_best_mks:
+            global_best_sln = local_best_sln
+            global_best_mks = local_best_mks
+
+    
     design_csv_path = os.path.join(save_dir, 'best_design.csv')
     fp_csv = open(design_csv_path, 'w', newline='')
     writer = csv.writer(fp_csv)
 
-    writer.writerow(['Makespan', repr(global_best_mks), 'Time', timeit.default_timer() - MSTS_start_time])
+    writer.writerow(['Makespan', repr(global_best_mks)])
+    writer.writerow(['Epochs', repr(e_cnt), 'Time', timeit.default_timer() - MSTS_start_time, 'Probability', repr(p_exp_con)])
 
     writer.writerow(["Machine", "Machine_schedule"])
 
@@ -411,14 +446,17 @@ if __name__ == '__main__':
 
     # Create output argument text file
     fp = open(os.path.join(save_dir, 'args.txt'), 'w')
-    fp.write(str("THESE WERE THE INPUT ARGUMENTS"))
+    #fp.write(str("THESE WERE THE INPUT ARGUMENTS"))
     fp.close()
-
+    task_dict = dict()
 
     """
+    test_name = "YFJS01.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\YFJS\YFJS01.txt"
+    filename = "data\Benchmarks\YFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
+    task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
@@ -428,24 +466,28 @@ if __name__ == '__main__':
             file_num = "0" + str(i+1)
         else:
             file_num = str(i+1)
-        filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
+        test_name = "YFJS" + file_num + ".txt"
+        filename = "data\Benchmarks\YFJS\\" + test_name
         starttime = timeit.default_timer()
         print(starttime)
         sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """
+    """"""
     print("## DAFJS: ##")
     for i in range(30):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
             file_num = str(i+1)
-        filename = "data\Benchmarks\DAFJS\DAFJS" + file_num + ".txt"
+        test_name = "DAFJS" + file_num + ".txt"
+        filename = "data\Benchmarks\DAFJS\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## SFJS: ##")
     for i in range(10):
@@ -453,9 +495,11 @@ if __name__ == '__main__':
             file_num = "0" + str(i+1)
         else:
             file_num = str(i+1)
-        filename = "data\Benchmarks\FMJ\sfjs" + file_num + ".txt"
+        test_name = "sfjs" + file_num + ".txt"
+        filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
@@ -465,17 +509,41 @@ if __name__ == '__main__':
             file_num = "0" + str(i+1)
         else:
             file_num = str(i+1)
-        filename = "data\Benchmarks\FMJ\mfjs" + file_num + ".txt"
+        test_name = "mfjs" + file_num + ".txt"
+        filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
+    """
+    """
+    print("## BR: ##")
+    for i in range(15):
+        if i < 9:
+            file_num = "0" + str(i+1)
+        else:
+            file_num = str(i+1)
+        test_name = "MK" + file_num + ".txt"
+        filename = "data\Benchmarks\BR\\" + test_name
+        starttime = timeit.default_timer()
+        sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## YFJS: ##")
     for i in range(14, 20):
         file_num = str(i+1)
-        filename = "data\Benchmarks\YFJS\YFJS" + file_num + ".txt"
+        test_name = "YFJS" + file_num + ".txt"
+        filename = "data\Benchmarks\YFJS\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
+
+    fp = open(os.path.join(save_dir, 'args.txt'), 'a')
+    for key, val in task_dict.items():
+        fp.write(repr(key) + ":" + repr(val))
+        fp.write("\n")
+    fp.close()
