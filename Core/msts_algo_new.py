@@ -152,7 +152,7 @@ def msts(instances_file, save_dir):
     #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
     #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "ERT"
+    OS_algo_choice = "LRMT"
     print(OS_algo_choice)
 
     basename = os.path.basename(instances_file)
