@@ -148,26 +148,23 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    #instances_file = base_dir + 'data\Benchmarks\YFJS\YFJS17.txt'
-    #instances_file = base_dir + 'data\Benchmarks\DAFJS\DAFJS03.txt'
-    #instances_file = base_dir + 'data\Benchmarks\FMJ\mfjs01.txt'
     MA_algo_choice = "greedy"
-    OS_algo_choice = "LRMT"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
+    # Add test instance name to the save directory name
     basename = os.path.basename(instances_file)
     save_dir = os.path.join(save_dir, basename[:-4])
     try:
+        # Create subdirectory for test instance
         os.makedirs(save_dir, exist_ok=True)
     except OSError:
         pass
 
-
-    epochs = 5
+    swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
     TS_cnt_max = 5
     p_exp_con = 1.0
-    swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
-
+    epochs = 5
     eps_start = 1.0
     eps_end = 0.0
     eps_decay = 0.5
