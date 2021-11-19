@@ -1,9 +1,11 @@
 import random
-import operator
 import timeit
+import operator
 import networkx as nx
 from copy import deepcopy
-from criticalpath import Node
+#from criticalpath import Node
+from critpath import Node
+
 
 import graph
 import machine_assignment
@@ -121,11 +123,6 @@ def get_critical_path(jobs_array, op_schedule):
     return CP, dj_graph.duration
 
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
-    # TODO:
-    # PREVIOUS OPERATION'S MACHINE MAY NOT BE CORRECT DUE TO SWAP
-    # MIGHT HAVE TO FIND ANOTHER WAY TO GET PREVIOUS OP'S MACHINE
-    # HAVE TO REASSIGN MACH_NUM IF OPERATION SWAPS TO ANOTHER MACHINE IN TABU_MOVE()
-
     if operation.pre == None:
         # If no previous operation then get machine's latest finishing time
         start_time = get_start_time(operation, None, machine_graph)
@@ -243,6 +240,7 @@ def recompute_times(jobs_array, machine_graph, schedules):
     return jobs_array, machine_graph
 
 def tabu_move(jobs_array, machine_graph, op_df, swap_method):
+    random.seed(1)
     best_solutions = []
     solutions_list = []
     schedules = graph.get_op_schedule(machine_graph)
@@ -304,7 +302,7 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
                 oper_schedule[idx-1] = (oper, 0, 0)
                 oper_schedule[idx] = (left_op, 0, 0)
             
-            # TODO: Recompute Times
+            # Set all times to 0
             oper_schedules = reset_times(oper_schedules)
 
             for machine, sched in oper_schedules.items():
@@ -330,15 +328,19 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
                     continue
                 op_schedule = machine_graph.nodes[machine[0]]['op_schedule']
 
-                # TODO: Check from end of op_schedule, all valid positions where oper can be inserted
+                # Get all valid positions of operation insertion into machine's schedule
                 valid_poses = get_insertion_pos(job, operation, op_df, op_schedule, machine[0])
                 insertion_positions += valid_poses
             
             # If no alternate eligible machines or valid positions, then skip operation
             if not insertion_positions:
                 continue
+
+            # If insertion positions is too large, get a maximum of 50 positions to swap
+            if len(insertion_positions) > 50:
+                insert_positions = random.sample(insertion_positions, 50)
             
-            for pos, mach in insertion_positions:
+            for pos, mach in insert_positions:
                 oper_jobs_array = deepcopy(jobs_array)
                 oper_machine_graph = deepcopy(machine_graph)
                 oper_schedules = graph.get_op_schedule(oper_machine_graph)

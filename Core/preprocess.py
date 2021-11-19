@@ -2,8 +2,8 @@ import os
 from copy import deepcopy
 import pandas as pd
 
-from operation import Operation
 import import_data
+from operation import Operation
 
 ############################################################
 

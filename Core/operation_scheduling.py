@@ -5,9 +5,6 @@ import machine_assignment
 
 ############################################################
 
-# TODO:
-## CAN REMOVE ALL THREE AND REPLACE WITH ONE SINCE THEY ARE ALL THE SAME
-## GET_SMT, GET_LRMT, GET_ERT
 # Get operation with shortest machining time (SMT)
 def get_SMT(next_operations):
 	return min(next_operations, key=operator.itemgetter(1))

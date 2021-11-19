@@ -137,6 +137,7 @@ def assign_parallel_operation_pre(job_array, operation, machine_graph):
 
 # Randomly assign machine to all operations
 def run_random(jobs_array, machine_graph):
+    random.seed(1)
     for job in jobs_array:
         for operation in job:
             # Get list of all eligible machines
@@ -180,7 +181,6 @@ def run_greedy(jobs_array, machine_graph, greedy_type="FMT"):
 
 # Use adapted Dijkstra's algorithm to assign machine with shortest path for each job
 def run_shortest_path(jobs_array, machine_graph):
-    random.seed(1)
     total_jobs = len(jobs_array)
     jobs = []
     for i in range(total_jobs):
