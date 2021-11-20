@@ -452,9 +452,9 @@ if __name__ == '__main__':
     task_dict = dict()
 
     """"""
-    test_name = "YFJS01.txt"
+    test_name = "DAFJS01.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\YFJS\\" + test_name
+    filename = "data\Benchmarks\DAFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
