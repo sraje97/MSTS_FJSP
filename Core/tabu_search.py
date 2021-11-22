@@ -3,7 +3,9 @@ import operator
 import timeit
 import networkx as nx
 from copy import deepcopy
-from criticalpath import Node
+#from criticalpath import Node
+from critpath import Node
+
 
 import graph
 import machine_assignment
@@ -121,11 +123,6 @@ def get_critical_path(jobs_array, op_schedule):
     return CP, dj_graph.duration
 
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
-    # TODO:
-    # PREVIOUS OPERATION'S MACHINE MAY NOT BE CORRECT DUE TO SWAP
-    # MIGHT HAVE TO FIND ANOTHER WAY TO GET PREVIOUS OP'S MACHINE
-    # HAVE TO REASSIGN MACH_NUM IF OPERATION SWAPS TO ANOTHER MACHINE IN TABU_MOVE()
-
     if operation.pre == None:
         # If no previous operation then get machine's latest finishing time
         start_time = get_start_time(operation, None, machine_graph)
@@ -338,6 +335,10 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
             # If no alternate eligible machines or valid positions, then skip operation
             if not insertion_positions:
                 continue
+
+            # If insertion positions is too large, get a maximum of 50 positions to swap
+            if len(insertion_positions) > 50:
+                insertion_positions = random.sample(insertion_positions, 50)
             
             for pos, mach in insertion_positions:
                 oper_jobs_array = deepcopy(jobs_array)

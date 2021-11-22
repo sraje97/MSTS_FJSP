@@ -405,7 +405,7 @@ def msts(instances_file, save_dir):
             global_best_sln = local_best_sln
             global_best_mks = local_best_mks
 
-    create_gantt_chart(global_best_sln[1])
+    #create_gantt_chart(global_best_sln[1])
 
     design_csv_path = os.path.join(save_dir, 'best_design.csv')
     fp_csv = open(design_csv_path, 'w', newline='')
@@ -451,7 +451,7 @@ if __name__ == '__main__':
     fp.close()
     task_dict = dict()
 
-    """"""
+    """
     test_name = "DAFJS01.txt"
     starttime = timeit.default_timer()
     filename = "data\Benchmarks\DAFJS\\" + test_name
@@ -459,7 +459,7 @@ if __name__ == '__main__':
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
     """
     print("## YFJS: ##")
     for i in range(20):
@@ -517,7 +517,7 @@ if __name__ == '__main__':
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """
+    """"""
     print("## BR: ##")
     for i in range(15):
         if i < 9:
@@ -530,7 +530,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## YFJS: ##")
     for i in range(14, 20):
