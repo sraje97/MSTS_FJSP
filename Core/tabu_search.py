@@ -1,3 +1,4 @@
+import pickle
 import random
 import timeit
 import operator
@@ -9,10 +10,18 @@ from critpath import Node
 
 import graph
 import machine_assignment
-from msts_algo_new import calculate_makespan
+#from msts_algo_new import calculate_makespan
 from operation_scheduling import get_start_time
 
 ############################################################
+
+def mydeepcopy(obj):
+    try:
+        #print("pickling")
+        return pickle.loads(pickle.dumps(obj, -1))
+    except pickle.PicklingError:
+        #print("deepcopy")
+        return deepcopy(obj)
 
 def flatten_job(jobs_array):
     sorted_jobs = []
@@ -33,7 +42,7 @@ def find_mach(op_num, schedules):
                 return key, i
 
 def reset_times(schedules):
-    for key, schedule in schedules.items():
+    for _, schedule in schedules.items():
         for i in range(len(schedule)):
             schedule[i] = (schedule[i][0], 0, 0)
     return schedules
@@ -48,6 +57,22 @@ def get_operation_job(jobs_array, oper):
     job_array = jobs_array[ int(oper_job) - 1]
     operation = [item for item in job_array if item.op_num == oper][0]
     return operation, job_array
+
+# Calculate the makespan from the machine schedules
+def calculate_makespan(machine_graph):
+    res = nx.get_node_attributes(machine_graph, 'op_schedule')
+
+    makespan = 0
+    op_num = ''
+    mach_num = ''
+
+    for mach, schedule in res.items():
+        for tupl in schedule:
+            if tupl[2] > makespan:
+                op_num = tupl[0]
+                mach_num = mach
+                makespan = tupl[2]
+    return op_num, mach_num, makespan
 
 def get_insertion_pos(job, operation, op_df, op_schedule, mach):
     valid_pos_list = []
@@ -108,7 +133,7 @@ def get_critical_path(jobs_array, op_schedule):
                 dj_graph.link(op.op_num, op.succ)
             #print(op.op_num, op.succ, op.processing_time)
 
-    for key, val in op_schedule.items():
+    for _, val in op_schedule.items():
         #print(key, val)
         for i in range(len(val)-1):
             #print("Link Node (op_schedule):", val[i][0], val[i+1][0])
@@ -141,6 +166,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                 # Get the operation which finished the latest
                 if oper.finish_time > finish_time:
                     prev_operation = oper
+                    finish_time = oper.finish_time
             
             start_time = get_start_time(operation, prev_operation, machine_graph)
             prev_machine = prev_operation.mach_num
@@ -188,6 +214,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
     ###########################
 
 def recompute_times(jobs_array, machine_graph, schedules):
+    # TODO: Can get rid of input argument schedules, and just get it inside the function
     scheduled_operations = []
     next_executable_operations = []
 
@@ -227,7 +254,7 @@ def recompute_times(jobs_array, machine_graph, schedules):
         mach, idx = find_mach(operation.op_num, schedules)
         oper_schedule = schedules[mach]
         if idx == (len(oper_schedule)-1):
-            prev_exec_flag = True
+            #prev_exec_flag = True
             next_executable_operations.remove(operation.op_num)
             continue
         next_executable_operations.append(oper_schedule[idx+1][0])
@@ -270,10 +297,10 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
         
         if swap_method[-2:] == "OS":
 
-            # Create a deepcopy for each unique operation
-            oper_schedules = deepcopy(schedules)
-            oper_jobs_array = deepcopy(jobs_array)
-            oper_machine_graph = deepcopy(machine_graph)
+            # Create a mydeepcopy for each unique operation
+            oper_schedules = mydeepcopy(schedules)
+            oper_jobs_array = mydeepcopy(jobs_array)
+            oper_machine_graph = mydeepcopy(machine_graph)
 
             # Find the machine and index of the operation in the machine schedule
             mach, idx = find_mach(oper, schedules)
@@ -338,11 +365,11 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
 
             # If insertion positions is too large, get a maximum of 50 positions to swap
             if len(insertion_positions) > 50:
-                insert_positions = random.sample(insertion_positions, 50)
+                insertion_positions = random.sample(insertion_positions, 50)
             
-            for pos, mach in insert_positions:
-                oper_jobs_array = deepcopy(jobs_array)
-                oper_machine_graph = deepcopy(machine_graph)
+            for pos, mach in insertion_positions:
+                oper_jobs_array = mydeepcopy(jobs_array)
+                oper_machine_graph = mydeepcopy(machine_graph)
                 oper_schedules = graph.get_op_schedule(oper_machine_graph)
                 operation, job = get_operation_job(oper_jobs_array, oper)
 

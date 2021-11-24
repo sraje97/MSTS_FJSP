@@ -137,7 +137,7 @@ def assign_parallel_operation_pre(job_array, operation, machine_graph):
 
 # Randomly assign machine to all operations
 def run_random(jobs_array, machine_graph):
-    random.seed(1)
+    #random.seed(1)
     for job in jobs_array:
         for operation in job:
             # Get list of all eligible machines

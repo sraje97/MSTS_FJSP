@@ -4,11 +4,13 @@
 import os
 import csv
 import sys
+import pickle
 import pstats
 import random
 import timeit
 import cProfile
 import operator
+
 import numpy as np
 import pandas as pd
 import networkx as nx
@@ -18,22 +20,20 @@ import plotly.graph_objects as go
 from copy import deepcopy
 from datetime import datetime
 from prettytable import PrettyTable
-from Core.tabu_search import reset_times
-
-
-# Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
-base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
-
-# Add base directory and the data directory to the system path
-sys.path.append(base_dir)
-sys.path.append(os.path.join(base_dir, 'data'))
 
 ## IMPORT OUR MODULES
 import graph
+import crossover
 import preprocess
 import tabu_search
 import machine_assignment
 import operation_scheduling
+
+# Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
+base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
+# Add base directory and the data directory to the system path
+sys.path.append(base_dir)
+sys.path.append(os.path.join(base_dir, 'data'))
 
 ############################################################
 
@@ -85,28 +85,6 @@ def calculate_makespan(machine_graph):
                 makespan = tupl[2]
     return op_num, mach_num, makespan
 
-def convert_to_str_seq(machine_graph):
-    str_seq = []
-    res = nx.get_node_attributes(machine_graph, 'op_schedule')
-
-    # TODO: MAKE SURE PARALLEL PRECEDENCE CONSTRAINTS ARE NOT BEING VIOLATED
-    # ESPECIALLY AFTER SORTING BY ST & MACH_NUM
-    
-    # Tuple : (job, op, mach, PT, ST, FT)
-    # Then sort by starting time and mach, then finishing time
-    for mach, schedule in res.items():
-        for item in schedule:
-            op_num = item[0]
-            job_num = op_num[op_num.find("O") + 1 : op_num.find("_")]
-            PT = item[2] - item[1]
-            str_seq.append( (job_num, op_num, mach, PT, item[1], item[2]) )
-    print(str_seq)
-
-    # Sort the sequence by starting time, then machine number, then finishing time (redundant)
-    ret_seq = sorted(str_seq, key=operator.itemgetter(4, 2, 5))
-
-    return ret_seq
-
 def print_job_info(jobs_array):
     table = PrettyTable(['Job', 'Operation', 'Pre', 'Succ', 'Series', 'Machines', 'Assigned Machine'])
     for job in jobs_array:
@@ -137,6 +115,13 @@ def create_gantt_chart(machine_graph):
         d.x = gantt_df[filt]['Delta'].tolist()
     fig.show()
 
+def mydeepcopy(obj):
+    try:
+        #print("pickling")
+        return pickle.loads(pickle.dumps(obj, -1))
+    except pickle.PicklingError:
+        #print("deepcopy")
+        return deepcopy(obj)
 
 def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
     ### MACHINE ASSIGNMENT ###
@@ -181,64 +166,6 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
     
     return jobs_array, machine_graph
 
-def POX_crossover(P1, P2, jobs):
-    # Create two jobsets
-    jobset = list(range(jobs))
-    random.shuffle(jobset)
-    jobset1 = jobset[ : jobs // 2]
-    jobset2 = jobset[jobs // 2 : ]
-
-    # Create two offspring
-    O1 = [None] * len(P1)
-    O2 = [None] * len(P1)
-    O1_idx = 0
-    O2_idx = 0
-    mach_dict = dict()
-    
-    # Tuple : (job, op, mach, PT, ST, FT)
-    # Add jobset1 operations into offspring in position
-    for i in range(len(P1)):
-        if int(P1[i][0]) in jobset1:
-            O1[i] = P1[i]
-
-        if int(P2[i][0]) in jobset1:
-            O2[i] = P2[i]
-
-        if P1[i][2] not in mach_dict:
-            mach_dict[P1[i][2]] = 0
-
-    # Add jobset2 operations to fill remaining positions
-    for i in range(len(P1)):
-        while(O1[O1_idx] != None):
-            O1_idx += 1
-            if O1_idx == len(P1):
-                O1_idx -= 1
-                break
-        while(O2[O2_idx] != None):
-            O2_idx += 1
-            if O2_idx == len(P1):
-                O2_idx -= 1
-                break
-        
-        if int(P2[i][0]) not in jobset1:
-            O1[O1_idx] = P2[i]
-        if int(P1[i][0]) not in jobset1:
-            O2[O2_idx] = P1[i]
-
-    # TODO : Finish time dependent on mach finish time and prev op's finish time
-    # Recompute starting and finishing times of new offspring
-    for i in range(len(O1)):
-        finish_time = mach_dict[O1[i][2]]
-        tupl = (O1[i][0], O1[i][1], O1[i][2], O1[i][3], finish_time, O1[i][3] + finish_time)
-        O1[i] = tupl
-        mach_dict[O1[i][2]] = O1[i][3] + finish_time
-
-    for i in range(len(O2)):
-        finish_time = mach_dict[O2[i][2]]
-        tupl = (O2[i][0], O2[i][1], O2[i][2], O2[i][3], finish_time, O2[i][3] + finish_time)
-        O2[i] = tupl
-        mach_dict[O2[i][2]] = O2[i][3] + finish_time
-
 def msts(instances_file, save_dir):
     ############################################################
     #               INITIALIALISE JOBS + MACHINES              #
@@ -274,9 +201,7 @@ def msts(instances_file, save_dir):
     # Load operation's information from instance's text file
     jobs_array, machines_array = preprocess.initialise_operations(instances_file)
 
-    # If test instances are DAFJS/YFJS, jobs may have parallel operations
-    # Hence, label the branches of the parallel paths
-    #if "DAFJS" in instances_file or "YFJS" in instances_file:
+    # Label the branches of the parallel paths and get precedence order dataframe
     jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
 
     machines_array.sort()
@@ -297,33 +222,27 @@ def msts(instances_file, save_dir):
 
     # Generate a population of random individuals
     for i in range(pop_size):
-        curr_jobs = deepcopy(jobs_array)
-        curr_graph = deepcopy(G)
+        curr_jobs = mydeepcopy(jobs_array)
+        curr_graph = mydeepcopy(G)
         curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, "Random", OS_algo_choice)
-        individual = convert_to_str_seq(curr_graph)
+        individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
 
-    curr_jobs = deepcopy(jobs_array)
-    curr_graph = deepcopy(G)
+    curr_jobs = mydeepcopy(jobs_array)
+    curr_graph = mydeepcopy(G)
 
     ## Get initial solution ##
     curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
 
     # Create a copy of the current solution (jobs and machine graph)
-    curr_solution = (deepcopy(curr_jobs), deepcopy(curr_graph))
-    local_best_sln = deepcopy(curr_solution)
-    global_best_sln = deepcopy(curr_solution)
+    curr_solution = (mydeepcopy(curr_jobs), mydeepcopy(curr_graph))
+    local_best_sln = mydeepcopy(curr_solution)
+    global_best_sln = mydeepcopy(curr_solution)
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
-    #op_schedule = graph.get_op_schedule(curr_graph)
-
-    # Create Gantt Chart
-    # create_gantt_chart(curr_graph)
-    #print(local_best_mks)
-
 
     ############################################################
     #                  BEGIN MSTS ALGORITHM                    #
@@ -331,21 +250,22 @@ def msts(instances_file, save_dir):
 
     e_cnt = 0           # Epoch counter
     TS_cnt = 0          # Tabu Search counter
-    global_TS_cnt = 0   # Global Tabu Search counter
     tabu_list = []
 
     MSTS_start_time = timeit.default_timer()
 
     # Initialise saves folders and files
-    fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
-    fp_log.close()
+    #fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
+    #fp_log.write(MA_algo_choice, "\t", OS_algo_choice)
+    #fp_log.close()
 
     while e_cnt < epochs:
-        #print("Started epochs", e_cnt)
         # Terminate program after 1 hour
         if (timeit.default_timer() - MSTS_start_time) > 600: #TODO: Change to 3600
             print("Overtime! Epochs:", e_cnt)
             break
+
+        ## LOCAL OPTIMIZATION ##
 
         # Get random swap method
         #swap_method = np.random.choice(swap_methods)
@@ -358,9 +278,9 @@ def msts(instances_file, save_dir):
             
             # Place solution in population if makespan better than a current individual
             for i in range(pop_size):
-                ind_mks = max(population[i], key=operator.itemgetter(5))
-                if best_neighbourhood[-1] < ind_mks:
-                    new_ind = convert_to_str_seq(best_neighbourhood[1])
+                individual = max(population[i], key=operator.itemgetter(5))
+                if best_neighbourhood[-1] < individual[-1]:
+                    new_ind = crossover.convert_to_str_seq(best_neighbourhood[1])
                     population[i] = new_ind
                     break
 
@@ -381,9 +301,9 @@ def msts(instances_file, save_dir):
 
                 tabu_list.append(tabu_tuple)
 
-                curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                curr_solution = (mydeepcopy(best_neighbourhood[0]), mydeepcopy(best_neighbourhood[1]))
                 local_best_mks = best_neighbourhood[-1]
-                local_best_sln = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                local_best_sln = (mydeepcopy(best_neighbourhood[0]), mydeepcopy(best_neighbourhood[1]))
 
                 TS_cnt = 0
             else:
@@ -400,14 +320,14 @@ def msts(instances_file, save_dir):
                                 continue
                             tenure = generate_tenure( len(neighbour[0]), graph.get_number_of_nodes(neighbour[1]) )
                             tabu_tuple = (neighbour[2], neighbour[3], tenure)
-                            curr_solution = (deepcopy(neighbour[0]), deepcopy(neighbour[1]))
+                            curr_solution = (mydeepcopy(neighbour[0]), mydeepcopy(neighbour[1]))
                             break
                         if all_tabu:
                             print("All solutions tabooed!")
                             # Store the best neighbour in case all neighbours are tabooed
                             tenure = generate_tenure( len(best_neighbourhood[0]), graph.get_number_of_nodes(best_neighbourhood[1]) )
                             tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
-                            curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                            curr_solution = (mydeepcopy(best_neighbourhood[0]), mydeepcopy(best_neighbourhood[1]))
                     else:
                         # If best neighbourhood solution is non-tabu solution store it as the solution
                         tenure = generate_tenure( len(best_neighbourhood[0]), graph.get_number_of_nodes(best_neighbourhood[1]) )
@@ -423,12 +343,12 @@ def msts(instances_file, save_dir):
                     tenure = generate_tenure( len(best_neighbourhood[0]), graph.get_number_of_nodes(best_neighbourhood[1]) )
                     tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
                     tabu_list.append(tabu_tuple)
-                    curr_solution = (deepcopy(best_neighbourhood[0]), deepcopy(best_neighbourhood[1]))
+                    curr_solution = (mydeepcopy(best_neighbourhood[0]), mydeepcopy(best_neighbourhood[1]))
 
                 TS_cnt += 1
         else:
             TS_cnt += 1
-            curr_solution = (deepcopy(local_best_sln[0]), deepcopy(local_best_sln[1]))
+            curr_solution = (mydeepcopy(local_best_sln[0]), mydeepcopy(local_best_sln[1]))
         
         # Decrement the tenure of each tabu solution
         i=0
@@ -446,35 +366,76 @@ def msts(instances_file, save_dir):
 
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
-                global_best_sln = deepcopy(local_best_sln)
-                global_TS_cnt = 0
-            else:
-                global_TS_cnt += 1
+                global_best_sln = mydeepcopy(local_best_sln)
             
-            # TODO: Add POX Crossover here
+            ## GLOBAL OPTIMIZATION ##
+            # POX Crossover of individuals in the population
             shuffled_pairs = generate_random_pairs(population, 2)
             for P1, P2 in shuffled_pairs:
-                pass
+                O1, O2 = crossover.POX_crossover(P1, P2, len(jobs_array))
 
-            if p < p_exp_con:
-                curr_jobs = deepcopy(jobs_array)
-                curr_graph = deepcopy(G)
+                O1_jobs, O1_graph, O1_mks = crossover.set_schedules(O1, mydeepcopy(jobs_array), mydeepcopy(G))
+                O2_jobs, O2_graph, O2_mks = crossover.set_schedules(O2, mydeepcopy(jobs_array), mydeepcopy(G))
 
-                # Empty tabu list
-                #tabu_list = []
+                # If both offspring received deadlock when setting schedule then skip
+                # Else, insert the offspring with the lower makespan to the population
+                if (O1_mks == -1) and (O2_mks == -1):
+                    continue
+                elif (O1_mks == -1):
+                    # Set O2 as offspring in population
+                    O2 = crossover.update_times(O2, O2_graph)
+                    population.append(O2)
+                elif (O2_mks == -1):
+                    # Set O1 as offspring in population
+                    O1 = crossover.update_times(O1, O1_graph)
+                    population.append(O1)
+                else:
+                    if O1_mks < O2_mks:
+                        # Set O1 as offspring in population
+                        O1 = crossover.update_times(O1, O1_graph)
+                        population.append(O1)
+                    else:
+                        # Set O2 as offspring in population
+                        O2 = crossover.update_times(O2, O2_graph)
+                        population.append(O2)
 
-                ## Get initial solution ##
-                #OS_algo_choice = np.random.choice(['LRMT', 'ERT'])
-                #print(OS_algo_choice)
-                curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+                # If the new individual's makespan is better than the global best, save this
+                if (O1_mks < global_best_mks) and (O1_mks > 0):
+                    global_best_sln = (O1_jobs, O1_graph)
+                if (O2_mks < global_best_mks) and (O2_mks > 0):
+                    global_best_sln = (O2_jobs, O2_graph)
+
+                P1_mks = max(P1, key=operator.itemgetter(5))
+                P2_mks = max(P2, key=operator.itemgetter(5))
+
+                # Delete the higher makespan parent
+                if P1_mks[-1] < P2_mks[-1]:
+                    population.remove(P2)
+                else:
+                    population.remove(P1)
+
+            # Choose new current solution to be one of:
+            # 1. Best global solution (likelihood increases as time passes)
+            # 2. New random initial solution (static 5% chance)
+            # 3. Random solution from the population (high chance early but lower as time passes)
+            if p > p_exp_con:
+                # Choose the global best solution
+                curr_solution = mydeepcopy(global_best_sln)
+            elif p < 0.05:
+                # Generate new initial solution
+                curr_jobs, curr_graph = initial_solution(mydeepcopy(jobs_array), mydeepcopy(G), MA_algo_choice, OS_algo_choice)
                 curr_solution = (curr_jobs, curr_graph)
             else:
-                curr_solution = deepcopy(global_best_sln)
+                # Choose random individual from the population
+                individual = random.choice(population)
+                curr_jobs, curr_graph, _ = crossover.set_schedules(individual, mydeepcopy(jobs_array), mydeepcopy(G))
+                curr_solution = (curr_jobs, curr_graph)
 
             p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
             TS_cnt = 0
             e_cnt += 1
 
+    # Get the best found solution and log it's information
     _, _, curr_best_mks = calculate_makespan(curr_solution[1])
     _, _, local_best_mks = calculate_makespan(local_best_sln[1])
     _, _, global_best_mks = calculate_makespan(global_best_sln[1])
@@ -486,13 +447,13 @@ def msts(instances_file, save_dir):
         if local_best_mks < global_best_mks:
             global_best_sln = local_best_sln
             global_best_mks = local_best_mks
-
     
     design_csv_path = os.path.join(save_dir, 'best_design.csv')
     fp_csv = open(design_csv_path, 'w', newline='')
     writer = csv.writer(fp_csv)
 
     writer.writerow(['Makespan', repr(global_best_mks)])
+    writer.writerow(['OS Algo Choice', repr(OS_algo_choice), 'MS Algo Choice', repr(MA_algo_choice)])
     writer.writerow(['Epochs', repr(e_cnt), 'Time', timeit.default_timer() - MSTS_start_time, 'Probability', repr(p_exp_con)])
 
     writer.writerow(["Machine", "Machine_schedule"])
@@ -537,9 +498,9 @@ if __name__ == '__main__':
     profiler.enable()
 
     """"""
-    test_name = "MK03.txt"
+    test_name = "DAFJS01.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\BR\\" + test_name
+    filename = "data\Benchmarks\DAFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
