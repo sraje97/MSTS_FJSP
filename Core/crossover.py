@@ -1,8 +1,8 @@
+import graph
 import random
 import operator
 import networkx as nx
 
-from graph import get_op_schedule
 from msts_algo_new import calculate_makespan
 from tabu_search import get_operation_job, recompute_times
 
@@ -87,7 +87,8 @@ def set_schedules(seq_str, jobs_array, machine_graph):
         op.mach_num = oper[2]
         op.processing_time = oper[3]
     
-    oper_schedules = get_op_schedule(machine_graph)
+    #oper_schedules = nx.get_node_attributes(machine_graph, 'op_schedules')
+    oper_schedules = graph.get_op_schedule(machine_graph)
 
     # Set the operation's start/finish times given the set in machine schedules
     jobs_array, machine_graph = recompute_times(jobs_array, machine_graph, oper_schedules)

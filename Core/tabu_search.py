@@ -270,7 +270,8 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
     random.seed(1)
     best_solutions = []
     solutions_list = []
-    schedules = graph.get_op_schedule(machine_graph)
+    #schedules = graph.get_op_schedule(machine_graph)
+    schedules = nx.get_node_attributes(machine_graph, 'op_schedule')
 
     for schedule in schedules.values():
         schedule.sort(key=lambda a: a[-1])
@@ -370,7 +371,7 @@ def tabu_move(jobs_array, machine_graph, op_df, swap_method):
             for pos, mach in insertion_positions:
                 oper_jobs_array = mydeepcopy(jobs_array)
                 oper_machine_graph = mydeepcopy(machine_graph)
-                oper_schedules = graph.get_op_schedule(oper_machine_graph)
+                oper_schedules = nx.get_node_attributes(oper_machine_graph, 'op_schedule')
                 operation, job = get_operation_job(oper_jobs_array, oper)
 
                 # Delete the operation from its old position

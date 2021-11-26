@@ -97,18 +97,34 @@ def create_gantt_chart(machine_graph):
     op_schedules = []
     res = nx.get_node_attributes(machine_graph, 'op_schedule')
 
+    op_schedules = []
+    mach_names = []
+    job_names = []
+
     for mach, schedule in res.items():
+        if mach not in mach_names:
+            mach_names.append(mach)
         for tupl in schedule:
-            op_job = tupl[0][tupl[0].find("O") + 1 : tupl[0].find("_")]
-            temp_dict = dict(Job="J"+op_job, Start=tupl[1], Finish=tupl[2], Machine=mach, Details=tupl[0])
+            op_job = "J" + tupl[0][tupl[0].find("O") + 1 : tupl[0].find("_")]
+            if op_job not in job_names:
+                job_names.append(op_job)
+            temp_dict = dict(Job=op_job, Start=tupl[1], Finish=tupl[2], Machine=mach, Details=tupl[0])
             op_schedules.append(temp_dict)
 
-    #print(op_schedules)
+    mach_names = sorted(mach_names, key=lambda x: int("".join([i for i in x if i.isdigit()])))
+    job_names = sorted(job_names, key=lambda x: int("".join([i for i in x if i.isdigit()])))
+
     gantt_df = pd.DataFrame(op_schedules)
     gantt_df['Delta'] = gantt_df['Finish'] - gantt_df['Start']
-    
-    fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color="Job", text="Details")
-    fig.update_yaxes(autorange="reversed")
+
+    # Colorscale for colors.sequential and colors.qualitative https://plotly.com/python/builtin-colorscales/
+    # Good colours: Teal, Tealgrn, darkcyan, slategray, Plotly
+    fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color="Job", text="Details",
+                    color_discrete_sequence= px.colors.qualitative.Plotly,
+                    #color_discrete_sequence=["lightslategray"],
+                    category_orders= { "Machine" : mach_names, "Job" : job_names }
+                    )
+    #fig.update_yaxes(autorange="reversed")
     fig.layout.xaxis.type = 'linear'
     for d in fig.data:
         filt = gantt_df['Job'] == d.name
@@ -128,14 +144,21 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
     # Random machine assignment
     if MA_algo.lower() == 'random':
         #print(MA_algo)
-        x = machine_assignment.run_random(jobs_array, machine_graph)
+        x = machine_assignment.assign_random(jobs_array, machine_graph)
         #print("Return Random", x)
         #print(graph.get_graph_info(machine_graph))
     # Greedy machine assignment
     elif MA_algo.lower() == 'greedy':
         #print(MA_algo)
-        x = machine_assignment.run_greedy(jobs_array, machine_graph, "FMT")
+        x = machine_assignment.assign_greedy(jobs_array, machine_graph, "FMT")
         #print("Return Greedy", x)
+        #print(graph.get_graph_info(machine_graph))
+    # Shortest Path machine assignment
+    # Greedy machine assignment
+    elif MA_algo.lower() == 'lum':
+        #print(MA_algo)
+        x = machine_assignment.assign_LUM(jobs_array, machine_graph)
+        #print("Return LUM", x)
         #print(graph.get_graph_info(machine_graph))
     # Shortest Path machine assignment
     else:
@@ -172,7 +195,7 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "greedy"
+    MA_algo_choice = "LUM"
     OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
@@ -190,7 +213,7 @@ def msts(instances_file, save_dir):
     p_exp_con = 1.0
     epochs = 5
     eps_start = 1.0
-    eps_end = 0.0
+    eps_end = 0.05
     eps_decay = 0.5
     pop_size = 10
     population = []
@@ -240,6 +263,7 @@ def msts(instances_file, save_dir):
     global_best_sln = mydeepcopy(curr_solution)
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
+    print("Initial:", global_best_mks)
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
@@ -367,6 +391,7 @@ def msts(instances_file, save_dir):
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
                 global_best_sln = mydeepcopy(local_best_sln)
+                print("Local:", global_best_mks)
             
             ## GLOBAL OPTIMIZATION ##
             # POX Crossover of individuals in the population
@@ -402,8 +427,12 @@ def msts(instances_file, save_dir):
                 # If the new individual's makespan is better than the global best, save this
                 if (O1_mks < global_best_mks) and (O1_mks > 0):
                     global_best_sln = (O1_jobs, O1_graph)
+                    global_best_mks = O1_mks
+                    print("O1:", global_best_mks)
                 if (O2_mks < global_best_mks) and (O2_mks > 0):
                     global_best_sln = (O2_jobs, O2_graph)
+                    global_best_mks = O2_mks
+                    print("O2:", global_best_mks)
 
                 P1_mks = max(P1, key=operator.itemgetter(5))
                 P2_mks = max(P2, key=operator.itemgetter(5))
@@ -411,8 +440,17 @@ def msts(instances_file, save_dir):
                 # Delete the higher makespan parent
                 if P1_mks[-1] < P2_mks[-1]:
                     population.remove(P2)
+                    # NOTE: Seems redundant but confirm below code again
+                    if (P1_mks[-1] < global_best_mks) and (P1_mks[-1] > 0):
+                        #P1_jobs, P1_graph, P1_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
+                        #global_best_sln = (P1_jobs, P1_graph)
+                        #global_best_mks = P1_mks[-1]
+                        global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
                 else:
                     population.remove(P1)
+                    # NOTE: Seems redundant but confirm again
+                    if (P2_mks[-1] < global_best_mks) and (P2_mks[-1] > 0):
+                        global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
 
             # Choose new current solution to be one of:
             # 1. Best global solution (likelihood increases as time passes)
@@ -458,7 +496,7 @@ def msts(instances_file, save_dir):
 
     writer.writerow(["Machine", "Machine_schedule"])
 
-    schedule = graph.get_op_schedule(global_best_sln[1])
+    schedule = nx.get_node_attributes(global_best_sln[1], 'op_schedules')
     for key, val in schedule.items():
         writer.writerow([repr(key), repr(val)])
     
@@ -578,11 +616,16 @@ if __name__ == '__main__':
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
-    print("## YFJS: ##")
-    for i in range(14, 20):
-        file_num = str(i+1)
-        test_name = "YFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\YFJS\\" + test_name
+    print("## BR: ##")
+    for i in range(15):
+        if i < 9:
+            file_num = "0" + str(i+1)
+        elif i == 5:
+            continue
+        else:
+            file_num = str(i+1)
+        test_name = "MK" + file_num + ".txt"
+        filename = "data\Benchmarks\BR\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)

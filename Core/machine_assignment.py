@@ -136,8 +136,7 @@ def assign_parallel_operation_pre(job_array, operation, machine_graph):
 ############################################################
 
 # Randomly assign machine to all operations
-def run_random(jobs_array, machine_graph):
-    #random.seed(1)
+def assign_random(jobs_array, machine_graph):
     for job in jobs_array:
         for operation in job:
             # Get list of all eligible machines
@@ -155,7 +154,7 @@ def run_random(jobs_array, machine_graph):
 
 # Greedily assign machine to all operations using either 
 # FMT - Fastest Machining Time (default) or LMT - Longest Machining Time
-def run_greedy(jobs_array, machine_graph, greedy_type="FMT"):
+def assign_greedy(jobs_array, machine_graph, greedy_type="FMT"):
     for job in jobs_array:
         for operation in job:
             # Get list of all eligible machines
@@ -177,6 +176,26 @@ def run_greedy(jobs_array, machine_graph, greedy_type="FMT"):
                         best_machine = machine
                 # Assign the machine to the operation (and vice versa)
                 assign_operation_to_machine(operation, machine_graph, best_machine)
+    return 1
+
+# Assign the operation to the machine with the least number of operations already assigned
+# i.e., the Least Utilised Machine (LUM)
+def assign_LUM(jobs_array, machine_graph):
+    for job in jobs_array:
+        for operation in job:
+            # Get list of all eligible machines
+            eligible_machines = operation.machines
+
+            # Get the least utilised machine
+            least_length = bigM
+            for machine in eligible_machines:
+                len_op_schedule = len(machine_graph.nodes[machine[0]]['op_schedule'])
+                if len_op_schedule < least_length:
+                    least_length = len_op_schedule
+                    LUM = machine
+
+            # Assign the machine to the operation (and vice versa)
+            assign_operation_to_machine(operation, machine_graph, LUM)
     return 1
 
 # Use adapted Dijkstra's algorithm to assign machine with shortest path for each job
