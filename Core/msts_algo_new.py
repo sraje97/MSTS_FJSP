@@ -196,7 +196,7 @@ def msts(instances_file, save_dir):
 
     # TODO: Get as inputs
     MA_algo_choice = "LUM"
-    OS_algo_choice = "ERT"
+    OS_algo_choice = "LRMT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -263,7 +263,7 @@ def msts(instances_file, save_dir):
     global_best_sln = mydeepcopy(curr_solution)
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
-    print("Initial:", global_best_mks)
+    #print("Initial:", global_best_mks)
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
@@ -391,7 +391,7 @@ def msts(instances_file, save_dir):
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
                 global_best_sln = mydeepcopy(local_best_sln)
-                print("Local:", global_best_mks)
+                #print("Local:", global_best_mks)
             
             ## GLOBAL OPTIMIZATION ##
             # POX Crossover of individuals in the population
@@ -428,11 +428,11 @@ def msts(instances_file, save_dir):
                 if (O1_mks < global_best_mks) and (O1_mks > 0):
                     global_best_sln = (O1_jobs, O1_graph)
                     global_best_mks = O1_mks
-                    print("O1:", global_best_mks)
+                    #print("O1:", global_best_mks)
                 if (O2_mks < global_best_mks) and (O2_mks > 0):
                     global_best_sln = (O2_jobs, O2_graph)
                     global_best_mks = O2_mks
-                    print("O2:", global_best_mks)
+                    #print("O2:", global_best_mks)
 
                 P1_mks = max(P1, key=operator.itemgetter(5))
                 P2_mks = max(P2, key=operator.itemgetter(5))
@@ -442,15 +442,16 @@ def msts(instances_file, save_dir):
                     population.remove(P2)
                     # NOTE: Seems redundant but confirm below code again
                     if (P1_mks[-1] < global_best_mks) and (P1_mks[-1] > 0):
-                        #P1_jobs, P1_graph, P1_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
-                        #global_best_sln = (P1_jobs, P1_graph)
-                        #global_best_mks = P1_mks[-1]
-                        global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
+                        P1_jobs, P1_graph, global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
+                        global_best_sln = (P1_jobs, P1_graph)
+                        #global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
                 else:
                     population.remove(P1)
                     # NOTE: Seems redundant but confirm again
                     if (P2_mks[-1] < global_best_mks) and (P2_mks[-1] > 0):
-                        global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
+                        P2_jobs, P2_graph, global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
+                        global_best_sln = (P2_jobs, P2_graph)
+                        #global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
 
             # Choose new current solution to be one of:
             # 1. Best global solution (likelihood increases as time passes)
@@ -535,7 +536,7 @@ if __name__ == '__main__':
     profiler = cProfile.Profile()
     profiler.enable()
 
-    """"""
+    """
     test_name = "DAFJS01.txt"
     starttime = timeit.default_timer()
     filename = "data\Benchmarks\DAFJS\\" + test_name
@@ -543,8 +544,8 @@ if __name__ == '__main__':
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
     """
+    """"""
     print("## YFJS: ##")
     for i in range(20):
         if i < 9:
@@ -614,7 +615,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## BR: ##")
     for i in range(15):
