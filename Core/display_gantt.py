@@ -8,7 +8,7 @@ import plotly.express as px
 filepath = ''
 #filepath = input("Filename:")
 if filepath == '':
-    filepath = 'H:\\Documents\\Masters\\output_models\\24-11-2021-22-41-50\\DAFJS18\\best_design.csv'
+    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\01-12-2021-17-52-37\\mfjs08\\best_design.csv'
 
 mach_dict = defaultdict()
 

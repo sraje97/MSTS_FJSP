@@ -195,8 +195,8 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "LUM"
-    OS_algo_choice = "LRMT"
+    MA_algo_choice = "Greedy"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -208,10 +208,12 @@ def msts(instances_file, save_dir):
     except OSError:
         pass
 
-    swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
-    TS_cnt_max = 5
+    #swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
+    swap_methods = ["Critical Path MA", "Critical Path OS"]
+    TS_cnt_max = 10
     p_exp_con = 1.0
-    epochs = 5
+    p_MA_OS = 0.5
+    epochs = 50
     eps_start = 1.0
     eps_end = 0.05
     eps_decay = 0.5
@@ -274,6 +276,7 @@ def msts(instances_file, save_dir):
 
     e_cnt = 0           # Epoch counter
     TS_cnt = 0          # Tabu Search counter
+    global_improved = 0 # Global improvement counter
     tabu_list = []
 
     MSTS_start_time = timeit.default_timer()
@@ -285,15 +288,19 @@ def msts(instances_file, save_dir):
 
     while e_cnt < epochs:
         # Terminate program after 1 hour
-        if (timeit.default_timer() - MSTS_start_time) > 600: #TODO: Change to 3600
+        if (timeit.default_timer() - MSTS_start_time) > 3600: #TODO: Change to 3600
             print("Overtime! Epochs:", e_cnt)
             break
 
         ## LOCAL OPTIMIZATION ##
 
-        # Get random swap method
-        #swap_method = np.random.choice(swap_methods)
-        swap_method = "Critical Path MA"
+        # Get swap method using probability
+        p = np.random.random()
+        if p < p_MA_OS:
+        #if TS_cnt < 6:
+            swap_method = "Critical Path MA"
+        else:
+            swap_method = "Critical Path OS"
 
         # Neighbourhood Tuple : (jobs, graph, oper, mach, mks)
         neighbourhood = tabu_search.tabu_move(curr_solution[0], curr_solution[1], op_df, swap_method)
@@ -360,6 +367,7 @@ def msts(instances_file, save_dir):
                     for tupl in tabu_list:
                         if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
                             tabu_list.remove(tupl)
+                            break
                     tabu_list.append(tabu_tuple)
 
                 else:
@@ -370,6 +378,14 @@ def msts(instances_file, save_dir):
                     curr_solution = (mydeepcopy(best_neighbourhood[0]), mydeepcopy(best_neighbourhood[1]))
 
                 TS_cnt += 1
+                # If no improve with MA lower the probability of choosing MA
+                # Else, increase the probability of choosing MA
+                if swap_method == "Critical Path MA":
+                    p_MA_OS -= 0.25
+                else:
+                    p_MA_OS += 0.25
+                # p_MA_OS must be within the bounds of 0 and 1
+                p_MA_OS = max(0, min(p_MA_OS, 1))
         else:
             TS_cnt += 1
             curr_solution = (mydeepcopy(local_best_sln[0]), mydeepcopy(local_best_sln[1]))
@@ -391,6 +407,9 @@ def msts(instances_file, save_dir):
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
                 global_best_sln = mydeepcopy(local_best_sln)
+                global_improved = 0
+            else:
+                global_improved += 1
                 #print("Local:", global_best_mks)
             
             ## GLOBAL OPTIMIZATION ##
@@ -473,6 +492,10 @@ def msts(instances_file, save_dir):
             p_exp_con = eps_end + (eps_start - eps_end) * np.exp(-1.0 * e_cnt / epochs / eps_decay)
             TS_cnt = 0
             e_cnt += 1
+            # If no improvement on the global solution after epochs/2 iterations, then terminate
+            if global_improved >= epochs/2:
+                print("No improvement... Breaking...")
+                break
 
     # Get the best found solution and log it's information
     _, _, curr_best_mks = calculate_makespan(curr_solution[1])
@@ -497,7 +520,8 @@ def msts(instances_file, save_dir):
 
     writer.writerow(["Machine", "Machine_schedule"])
 
-    schedule = nx.get_node_attributes(global_best_sln[1], 'op_schedules')
+    #schedule = nx.get_node_attributes(global_best_sln[1], 'op_schedules')
+    schedule = graph.get_op_schedule(global_best_sln[1])
     for key, val in schedule.items():
         writer.writerow([repr(key), repr(val)])
     
@@ -547,7 +571,7 @@ if __name__ == '__main__':
     """
     """"""
     print("## YFJS: ##")
-    for i in range(20):
+    for i in range(10):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
@@ -562,7 +586,7 @@ if __name__ == '__main__':
     """
     """
     print("## DAFJS: ##")
-    for i in range(30):
+    for i in range(10):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
@@ -574,7 +598,7 @@ if __name__ == '__main__':
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """
+    """"""
     print("## SFJS: ##")
     for i in range(10):
         if i < 9:
@@ -587,7 +611,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## MFJS: ##")
     for i in range(10):
@@ -601,10 +625,10 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## BR: ##")
-    for i in range(15):
+    for i in range(10):
         if i < 9:
             file_num = "0" + str(i+1)
         else:
@@ -615,7 +639,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
     """
     print("## BR: ##")
     for i in range(15):
