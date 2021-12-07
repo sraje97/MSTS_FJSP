@@ -608,6 +608,14 @@ if __name__ == '__main__':
     profiler = cProfile.Profile()
     profiler.enable()
 
+    # List of test instances
+    YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13']
+    DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '13', '14' \
+             '17', '18', '19', '20', '21', '23', '24', '28', '29', '30']
+    SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MK = ['01', '02', '03', '04', '05']
+
     """
     test_name = "DAFJS01.txt"
     starttime = timeit.default_timer()
@@ -619,11 +627,7 @@ if __name__ == '__main__':
     """
     """"""
     print("## YFJS: ##")
-    for i in range(10):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        else:
-            file_num = str(i+1)
+    for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
         filename = "data\Benchmarks\YFJS\\" + test_name
         starttime = timeit.default_timer()
@@ -634,11 +638,7 @@ if __name__ == '__main__':
     """
     """
     print("## DAFJS: ##")
-    for i in range(10):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        else:
-            file_num = str(i+1)
+    for file_num in DAFJS:
         test_name = "DAFJS" + file_num + ".txt"
         filename = "data\Benchmarks\DAFJS\\" + test_name
         starttime = timeit.default_timer()
@@ -648,11 +648,7 @@ if __name__ == '__main__':
     """
     """
     print("## SFJS: ##")
-    for i in range(10):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        else:
-            file_num = str(i+1)
+    for file_num in SFJS:
         test_name = "sfjs" + file_num + ".txt"
         filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
@@ -662,11 +658,7 @@ if __name__ == '__main__':
     """
     """
     print("## MFJS: ##")
-    for i in range(10):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        else:
-            file_num = str(i+1)
+    for file_num in MFJS:
         test_name = "mfjs" + file_num + ".txt"
         filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
@@ -675,12 +667,8 @@ if __name__ == '__main__':
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
-    print("## BR: ##")
-    for i in range(10):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        else:
-            file_num = str(i+1)
+    print("## MK: ##")
+    for file_num in MK:
         test_name = "MK" + file_num + ".txt"
         filename = "data\Benchmarks\BR\\" + test_name
         starttime = timeit.default_timer()
@@ -688,22 +676,6 @@ if __name__ == '__main__':
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """"""
-    """
-    print("## BR: ##")
-    for i in range(15):
-        if i < 9:
-            file_num = "0" + str(i+1)
-        elif i == 5:
-            continue
-        else:
-            file_num = str(i+1)
-        test_name = "MK" + file_num + ".txt"
-        filename = "data\Benchmarks\BR\\" + test_name
-        starttime = timeit.default_timer()
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
-        print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
 
     fp = open(os.path.join(save_dir, 'args.txt'), 'a')
     for key, val in task_dict.items():
