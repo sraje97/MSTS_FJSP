@@ -27,7 +27,8 @@ def flatten_job(jobs_array):
     sorted_jobs = []
     for job in jobs_array:
         sorted_op_nums = sorted(job, key=lambda op: op.op_num)
-        sorted_jobs.append(sorted_op_nums)
+        for op in sorted_op_nums:
+            sorted_jobs.append(op)
 
     return sorted_jobs
 

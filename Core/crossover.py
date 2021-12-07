@@ -4,15 +4,12 @@ import operator
 import networkx as nx
 
 from msts_algo_new import calculate_makespan
-from tabu_search import get_operation_job, recompute_times
+from tabu_search import get_operation_job, recompute_times, flatten_job
 
 # Convert a machine schedule to a sequence string containing a topological order of operations
 def convert_to_str_seq(machine_graph):
     str_seq = []
     res = nx.get_node_attributes(machine_graph, 'op_schedule')
-
-    # TODO: MAKE SURE PARALLEL PRECEDENCE CONSTRAINTS ARE NOT BEING VIOLATED
-    # ESPECIALLY AFTER SORTING BY ST & MACH_NUM
     
     # Tuple : (job, op, mach, PT, ST, FT)
     # Then sort by starting time and mach, then finishing time
@@ -30,13 +27,12 @@ def convert_to_str_seq(machine_graph):
 
     return ret_seq
 
-# Conduct Precedence-preserving crossover [see references]
-def POX_crossover(P1, P2, num_jobs):
+# Conduct Precedence-preserving crossover (POX) [see references]
+def POX_crossover(P1, P2, jobs):
     # Create two jobsets
-    jobset = list(range(1, num_jobs+1))
+    jobset = list(range(1, len(jobs)+1))
     random.shuffle(jobset)
-    jobset1 = jobset[ : num_jobs // 2]
-    jobset2 = jobset[num_jobs // 2 : ]
+    jobset1 = jobset[ : len(jobs) // 2]
 
     # Create two offspring
     O1 = [None] * len(P1)
@@ -75,6 +71,27 @@ def POX_crossover(P1, P2, num_jobs):
         if int(P1[i][0]) not in jobset1:
             O2[O2_idx] = [ P1[i][0], P1[i][1], P1[i][2], P1[i][3], 0, 0 ]
 
+    ## MUTATION OPERATOR ##
+    # If p < pm then assign alternate eligible machine to the operation
+    
+    # Mutation probability
+    pm = 0.02
+    flat_jobs = flatten_job(jobs)
+
+    for i in range(len(O1)):
+        # Offspring 1
+        p = random.random()
+        if p < pm:
+            op = [item for item in flat_jobs if item.op_num == O1[i][1]][0]
+            eligible_machines = op.machines
+            O1[i][2], O1[i][3] = random.choice(eligible_machines)
+        # Offspring 2
+        p = random.random()
+        if p < pm:
+            op = [item for item in flat_jobs if item.op_num == O2[i][1]][0]
+            eligible_machines = op.machines
+            O2[i][2], O2[i][3] = random.choice(eligible_machines)
+    
     return O1, O2
 
 # Converts sequence string to jobs_array and machine graph with their attributes

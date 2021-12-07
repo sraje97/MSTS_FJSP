@@ -212,13 +212,18 @@ def msts(instances_file, save_dir):
     swap_methods = ["Critical Path MA", "Critical Path OS"]
     TS_cnt_max = 10
     p_exp_con = 1.0
-    p_MA_OS = 0.5
+    p_MA_OS = 1.0
     epochs = 50
     eps_start = 1.0
     eps_end = 0.05
     eps_decay = 0.5
-    pop_size = 10
+    pop_size = 50
     population = []
+
+    TS_mks = []
+    local_mks = []
+    pop_mks = []
+    TS_itrs = 0
 
     random.seed(1)
     np.random.seed(1)
@@ -246,12 +251,16 @@ def msts(instances_file, save_dir):
         OS_algo_choice = np.random.choice(['SMT', 'LRMT', 'ERT']) #, p=[0.35, 0.35, 0.3])
 
     # Generate a population of random individuals
+    pop_mks_sum = 0
     for i in range(pop_size):
         curr_jobs = mydeepcopy(jobs_array)
         curr_graph = mydeepcopy(G)
         curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, "Random", OS_algo_choice)
         individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
+        _, _, mks = calculate_makespan(curr_graph)
+        pop_mks_sum += mks
+    pop_mks.append( pop_mks_sum / pop_size)
 
     curr_jobs = mydeepcopy(jobs_array)
     curr_graph = mydeepcopy(G)
@@ -265,7 +274,8 @@ def msts(instances_file, save_dir):
     global_best_sln = mydeepcopy(curr_solution)
     _, _, local_best_mks = calculate_makespan(curr_solution[1])
     global_best_mks = local_best_mks
-    #print("Initial:", global_best_mks)
+    local_mks.append(local_best_mks)
+    TS_mks.append(local_best_mks)
 
     # Sort operation schedule
     graph.sort_op_schedule(curr_graph)
@@ -279,13 +289,13 @@ def msts(instances_file, save_dir):
     global_improved = 0 # Global improvement counter
     tabu_list = []
 
-    MSTS_start_time = timeit.default_timer()
-
     # Initialise saves folders and files
     #fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
     #fp_log.write(MA_algo_choice, "\t", OS_algo_choice)
     #fp_log.close()
 
+    MSTS_start_time = timeit.default_timer()
+    
     while e_cnt < epochs:
         # Terminate program after 1 hour
         if (timeit.default_timer() - MSTS_start_time) > 3600: #TODO: Change to 3600
@@ -304,8 +314,12 @@ def msts(instances_file, save_dir):
 
         # Neighbourhood Tuple : (jobs, graph, oper, mach, mks)
         neighbourhood = tabu_search.tabu_move(curr_solution[0], curr_solution[1], op_df, swap_method)
+        TS_itrs += 1
         if neighbourhood:
             best_neighbourhood = neighbourhood[0]
+
+            if TS_itrs % 5 == 0:
+                TS_mks.append(best_neighbourhood[-1])
             
             # Place solution in population if makespan better than a current individual
             for i in range(pop_size):
@@ -354,7 +368,7 @@ def msts(instances_file, save_dir):
                             curr_solution = (mydeepcopy(neighbour[0]), mydeepcopy(neighbour[1]))
                             break
                         if all_tabu:
-                            print("All solutions tabooed!")
+                            #print("All solutions tabooed!")
                             # Store the best neighbour in case all neighbours are tabooed
                             tenure = generate_tenure( len(best_neighbourhood[0]), graph.get_number_of_nodes(best_neighbourhood[1]) )
                             tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3], tenure)
@@ -403,6 +417,7 @@ def msts(instances_file, save_dir):
 
         if TS_cnt == TS_cnt_max:
             p = np.random.random()
+            local_mks.append(local_best_mks)
 
             if local_best_mks < global_best_mks:
                 global_best_mks = local_best_mks
@@ -414,9 +429,10 @@ def msts(instances_file, save_dir):
             
             ## GLOBAL OPTIMIZATION ##
             # POX Crossover of individuals in the population
+            pop_mks_sum = 0
             shuffled_pairs = generate_random_pairs(population, 2)
             for P1, P2 in shuffled_pairs:
-                O1, O2 = crossover.POX_crossover(P1, P2, len(jobs_array))
+                O1, O2 = crossover.POX_crossover(P1, P2, jobs_array)
 
                 O1_jobs, O1_graph, O1_mks = crossover.set_schedules(O1, mydeepcopy(jobs_array), mydeepcopy(G))
                 O2_jobs, O2_graph, O2_mks = crossover.set_schedules(O2, mydeepcopy(jobs_array), mydeepcopy(G))
@@ -429,19 +445,23 @@ def msts(instances_file, save_dir):
                     # Set O2 as offspring in population
                     O2 = crossover.update_times(O2, O2_graph)
                     population.append(O2)
+                    pop_mks_sum += O2_mks
                 elif (O2_mks == -1):
                     # Set O1 as offspring in population
                     O1 = crossover.update_times(O1, O1_graph)
                     population.append(O1)
+                    pop_mks_sum += O1_mks
                 else:
                     if O1_mks < O2_mks:
                         # Set O1 as offspring in population
                         O1 = crossover.update_times(O1, O1_graph)
                         population.append(O1)
+                        pop_mks_sum += O1_mks
                     else:
                         # Set O2 as offspring in population
                         O2 = crossover.update_times(O2, O2_graph)
                         population.append(O2)
+                        pop_mks_sum += O2_mks
 
                 # If the new individual's makespan is better than the global best, save this
                 if (O1_mks < global_best_mks) and (O1_mks > 0):
@@ -459,6 +479,7 @@ def msts(instances_file, save_dir):
                 # Delete the higher makespan parent
                 if P1_mks[-1] < P2_mks[-1]:
                     population.remove(P2)
+                    pop_mks_sum += P1_mks[-1]
                     # NOTE: Seems redundant but confirm below code again
                     if (P1_mks[-1] < global_best_mks) and (P1_mks[-1] > 0):
                         P1_jobs, P1_graph, global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
@@ -466,11 +487,14 @@ def msts(instances_file, save_dir):
                         #global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P1, mydeepcopy(jobs_array), mydeepcopy(G))
                 else:
                     population.remove(P1)
+                    pop_mks_sum += P2_mks[-1]
                     # NOTE: Seems redundant but confirm again
                     if (P2_mks[-1] < global_best_mks) and (P2_mks[-1] > 0):
                         P2_jobs, P2_graph, global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
                         global_best_sln = (P2_jobs, P2_graph)
                         #global_best_sln[0], global_best_sln[1], global_best_mks = crossover.set_schedules(P2, mydeepcopy(jobs_array), mydeepcopy(G))
+
+            pop_mks.append(pop_mks_sum / pop_size)
 
             # Choose new current solution to be one of:
             # 1. Best global solution (likelihood increases as time passes)
@@ -510,13 +534,15 @@ def msts(instances_file, save_dir):
             global_best_sln = local_best_sln
             global_best_mks = local_best_mks
     
+    # Create CSV to store best solution
     design_csv_path = os.path.join(save_dir, 'best_design.csv')
     fp_csv = open(design_csv_path, 'w', newline='')
     writer = csv.writer(fp_csv)
 
     writer.writerow(['Makespan', repr(global_best_mks)])
     writer.writerow(['OS Algo Choice', repr(OS_algo_choice), 'MS Algo Choice', repr(MA_algo_choice)])
-    writer.writerow(['Epochs', repr(e_cnt), 'Time', timeit.default_timer() - MSTS_start_time, 'Probability', repr(p_exp_con)])
+    writer.writerow(['Epochs', repr(e_cnt), 'Time', round(timeit.default_timer() - MSTS_start_time, 3), \
+                    'Probability', repr(p_exp_con)])
 
     writer.writerow(["Machine", "Machine_schedule"])
 
@@ -528,11 +554,32 @@ def msts(instances_file, save_dir):
     writer.writerow(['Job', 'Operation'])
     
     sorted_jobs = tabu_search.flatten_job(global_best_sln[0])
-    for job in sorted_jobs:
-        for oper in job:
-            writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
-                            oper.mach_num, oper.processing_time, oper.setup_time, oper.finish_time])
+    #for job in sorted_jobs:
+        #for oper in job:
+    for oper in sorted_jobs:
+        writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
+                        oper.mach_num, oper.processing_time, oper.setup_time, oper.finish_time])
     
+    fp_csv.close()
+
+    # Keep log of TS iteration's makespan
+    design_csv_path = os.path.join(save_dir, 'log_TS.csv')
+    fp_csv = open(design_csv_path, 'w', newline='')
+    writer = csv.writer(fp_csv)
+
+    writer.writerow(['Iteration', 'Best Neighbourhood Makespan'])
+    for i in range(len(TS_mks)):
+        writer.writerow([i*5, TS_mks[i]])
+    fp_csv.close()
+
+    # Keep log of local and population's makespans
+    design_csv_path = os.path.join(save_dir, 'log_epoch.csv')
+    fp_csv = open(design_csv_path, 'w', newline='')
+    writer = csv.writer(fp_csv)
+
+    writer.writerow(['Epoch', 'Local Best Makespan', 'Population Average Makespan'])
+    for i in range(len(local_mks)):
+        writer.writerow([i, local_mks[i], pop_mks[i]])
     fp_csv.close()
     
     return global_best_sln, global_best_mks
@@ -548,7 +595,6 @@ if __name__ == '__main__':
         os.makedirs(save_dir, exist_ok=True)
     except OSError:
         pass
-
 
     # Create output argument text file
     fp = open(os.path.join(save_dir, 'args.txt'), 'w')
@@ -598,7 +644,7 @@ if __name__ == '__main__':
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
-    """"""
+    """
     print("## SFJS: ##")
     for i in range(10):
         if i < 9:
@@ -611,7 +657,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
     """
     print("## MFJS: ##")
     for i in range(10):
@@ -625,7 +671,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
     """
     print("## BR: ##")
     for i in range(10):
@@ -639,7 +685,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
     """
     print("## BR: ##")
     for i in range(15):
