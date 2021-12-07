@@ -225,8 +225,8 @@ def msts(instances_file, save_dir):
     pop_mks = []
     TS_itrs = 0
 
-    random.seed(1)
-    np.random.seed(1)
+    #random.seed(1)
+    #np.random.seed(1)
 
     # Load operation's information from instance's text file
     jobs_array, machines_array = preprocess.initialise_operations(instances_file)
@@ -588,8 +588,10 @@ def msts(instances_file, save_dir):
 ### BEGIN MAIN PROGRAM ###
 if __name__ == '__main__':
 
+    PCname = os.environ['COMPUTERNAME']
+
     # Output folder to save to
-    save_dir = os.path.join(base_dir, 'output_models/', get_time_stamp())
+    save_dir = os.path.join(base_dir, 'output_models/', get_time_stamp() + '_' + PCname)
 
     try:
         os.makedirs(save_dir, exist_ok=True)
