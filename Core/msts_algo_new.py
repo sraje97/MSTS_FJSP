@@ -195,8 +195,8 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "Greedy"
-    OS_algo_choice = "ERT"
+    MA_algo_choice = "LUM"
+    OS_algo_choice = "LRMT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -599,9 +599,9 @@ if __name__ == '__main__':
         pass
 
     # Create output argument text file
-    fp = open(os.path.join(save_dir, 'args.txt'), 'w')
+    #fp = open(os.path.join(save_dir, 'args.txt'), 'w')
     #fp.write(str("THESE WERE THE INPUT ARGUMENTS"))
-    fp.close()
+    #fp.close()
     task_dict = dict()
 
     # Enable Stats profiler
@@ -677,11 +677,15 @@ if __name__ == '__main__':
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """"""
 
-    fp = open(os.path.join(save_dir, 'args.txt'), 'a')
+    # Keep log of test cases makespan and times
+    design_csv_path = os.path.join(save_dir, 'TestCases.csv')
+    fp_csv = open(design_csv_path, 'w', newline='')
+    writer = csv.writer(fp_csv)
+
+    writer.writerow(['Test Instance', 'Makespan', 'Runtime'])
     for key, val in task_dict.items():
-        fp.write(repr(key) + ":" + repr(val))
-        fp.write("\n")
-    fp.close()
+        writer.writerow([key, val[0], val[1]])
+    fp_csv.close()
 
     # Disable Stats profiler
     profiler.disable()
