@@ -8,7 +8,7 @@ import plotly.express as px
 filepath = ''
 #filepath = input("Filename:")
 if filepath == '':
-    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\01-12-2021-17-52-37\\mfjs08\\best_design.csv'
+    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\20-12-2021-17-49-11_EN-403038\\MK111\\best_design.csv'
 
 mach_dict = defaultdict()
 
@@ -59,6 +59,8 @@ fig = px.timeline(gantt_df, x_start="Start", x_end="Finish", y="Machine", color=
                 category_orders= { "Machine" : mach_names, "Job" : job_names }
                 )
 fig.layout.xaxis.type = 'linear'
+fig.update_xaxes(rangemode="tozero")
+fig.update_yaxes(zeroline=True)
 for d in fig.data:
     filt = gantt_df['Job'] == d.name
     d.x = gantt_df[filt]['Delta'].tolist()

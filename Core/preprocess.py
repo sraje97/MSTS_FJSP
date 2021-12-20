@@ -94,7 +94,7 @@ def initialise_operations(datafile):
     if os.path.splitext(datafile)[1] == '.txt':
 
         # Import precedence and machining information of each job
-        operations, machines =  import_data.import_txt_data(datafile)
+        operations, machines, t_times =  import_data.import_txt_data(datafile)
 
         ## JOBS ##
         #print(operations)
@@ -208,7 +208,7 @@ def initialise_operations(datafile):
     else:
         raise Exception("Invalid file type")
 
-    return jobs_array, unique_machines
+    return jobs_array, unique_machines, t_times
 
 def label_parallel_branches(jobs_array):
     df_list = []

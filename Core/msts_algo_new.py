@@ -229,7 +229,7 @@ def msts(instances_file, save_dir):
     #np.random.seed(1)
 
     # Load operation's information from instance's text file
-    jobs_array, machines_array = preprocess.initialise_operations(instances_file)
+    jobs_array, machines_array, trans_times = preprocess.initialise_operations(instances_file)
 
     # Label the branches of the parallel paths and get precedence order dataframe
     jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
@@ -240,8 +240,10 @@ def msts(instances_file, save_dir):
         #print(machine)
         graph.add_node(G, machine)
     
-    if basename[-4:] == '.txt':
+    if trans_times is None:
         trans_times = np.zeros((len(machines_array), len(machines_array)))
+        graph.add_edge_costs(G, trans_times, machines_array)
+    else:
         graph.add_edge_costs(G, trans_times, machines_array)
     
     # If machine assignment algorithm not pre-specified, choose randomly
@@ -616,16 +618,16 @@ if __name__ == '__main__':
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MK = ['01', '02', '03', '04', '05']
 
-    """
-    test_name = "DAFJS01.txt"
+    """"""
+    test_name = "MK111.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\DAFJS\\" + test_name
+    filename = "data\Benchmarks\BR\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
     """"""
+    """
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
@@ -675,7 +677,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
 
     # Keep log of test cases makespan and times
     design_csv_path = os.path.join(save_dir, 'TestCases.csv')

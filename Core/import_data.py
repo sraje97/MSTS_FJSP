@@ -1,3 +1,5 @@
+import numpy as np
+
 def import_txt_data(filename):
     with open(filename) as f:
         line = f.readline()
@@ -6,6 +8,7 @@ def import_txt_data(filename):
 
         op_precedence = []
         op_machines = []
+        t_times = np.zeros([num_machs, num_machs], dtype=np.uint8)
 
         for i in range(num_edges):
             line = f.readline()
@@ -18,5 +21,13 @@ def import_txt_data(filename):
             line.insert(0, str(i))
             op_machines.append(line)
 
+        for i in range(num_machs):
+            line = f.readline()
+            if line == '':
+                t_times = None
+                break
+            line = [int(x) for x in line.split()]
+            t_times[i] = np.array(line)
+
     f.close
-    return op_precedence, op_machines
+    return op_precedence, op_machines, t_times

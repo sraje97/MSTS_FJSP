@@ -151,8 +151,8 @@ def get_critical_path(jobs_array, op_schedule):
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
     if operation.pre == None:
         # If no previous operation then get machine's latest finishing time
-        start_time = get_start_time(operation, None, machine_graph)
         prev_machine = ''
+        start_time = get_start_time(operation, None, machine_graph)
     elif type(operation.pre) is list:
         # If previous operations are parallel branches, must wait till both have been scheduled
         branch_cnt = 0
@@ -168,17 +168,17 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                 if oper.finish_time > finish_time:
                     prev_operation = oper
                     finish_time = oper.finish_time
-            
-            start_time = get_start_time(operation, prev_operation, machine_graph)
+
             prev_machine = prev_operation.mach_num
+            start_time = get_start_time(operation, prev_operation, machine_graph)
         else:
             # Previous operations were not scheduled, hence return
             return scheduled_operations, -1
     elif operation.pre in scheduled_operations:
         # If previous operation is scheduled, find the latest start time
         prev_operation = [item for item in job_array if item.op_num == operation.pre][0]
-        start_time = get_start_time(operation, prev_operation, machine_graph)
         prev_machine = prev_operation.mach_num
+        start_time = get_start_time(operation, prev_operation, machine_graph)
     else:
         # Previous operation was not scheduled, hence return
         return scheduled_operations, -1
