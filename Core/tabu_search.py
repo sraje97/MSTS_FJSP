@@ -168,7 +168,6 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                 if oper.finish_time > finish_time:
                     prev_operation = oper
                     finish_time = oper.finish_time
-
             prev_machine = prev_operation.mach_num
             start_time = get_start_time(operation, prev_operation, machine_graph)
         else:

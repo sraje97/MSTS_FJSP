@@ -2,7 +2,6 @@
 """
 Adapted from code made available by Chrisspen @ Github
 https://github.com/chrisspen/criticalpath
-
 A simple critical path method implementation.
 http://en.wikipedia.org/wiki/Critical_path_method
 """
