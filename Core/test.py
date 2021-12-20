@@ -2,6 +2,7 @@ from operation import Operation
 import networkx as nx
 import graph
 import copy
+import timeit
 
 jobarray = []
 x=1
@@ -169,6 +170,19 @@ mach1 = [item for item in TG.nodes if item == "M1"][0]
 print(mach1)
 print(graph.get_node_info(TG, mach1))
 op_schedle = TG.nodes[mach1]['op_schedule']
-op_schedle.append(("O11", 0, 0))
+for i in range(10):
+    op_schedle.append(("O11", i, i*5))
 nx.set_node_attributes(TG, {mach1: {'op_schedule': op_schedle}})
-print(graph.get_node_info(TG, mach1))
+#print(graph.get_node_info(TG, mach1))
+
+sttime = timeit.default_timer()
+
+for i in range(10):
+    for j in range(100000):
+        schedules = graph.get_op_schedule(TG)      # SLOWER
+        #schedules2 = nx.get_node_attributes(TG, 'op_schedule')
+
+#print(schedules)
+#print(schedules2)
+
+print(timeit.default_timer() - sttime)

@@ -5,9 +5,6 @@ import machine_assignment
 
 ############################################################
 
-# TODO:
-## CAN REMOVE ALL THREE AND REPLACE WITH ONE SINCE THEY ARE ALL THE SAME
-## GET_SMT, GET_LRMT, GET_ERT
 # Get operation with shortest machining time (SMT)
 def get_SMT(next_operations):
 	return min(next_operations, key=operator.itemgetter(1))
@@ -89,12 +86,12 @@ def append_operation_tuple(job_array, operation, machine_graph, executable_opera
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
     # Get the start time depending on previous operation or current machine's finishing time
     if operation.pre == None:
-        start_time = get_start_time(operation, None, machine_graph)
         prev_machine = ''
+        start_time = get_start_time(operation, None, machine_graph)
     elif operation.pre in scheduled_operations:
         prev_operation = [item for item in job_array if item.op_num == operation.pre][0]
-        start_time = get_start_time(operation, prev_operation, machine_graph)
         prev_machine = prev_operation.mach_num
+        start_time = get_start_time(operation, prev_operation, machine_graph)
     elif type(operation.pre) is list:
         # If previous operations are parallel branches, must wait till both have been scheduled
         branch_cnt = 0
@@ -110,8 +107,8 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                 if oper.finish_time > finish_time:
                     prev_operation = oper
             
-            start_time = get_start_time(operation, prev_operation, machine_graph)
             prev_machine = prev_operation.mach_num
+            start_time = get_start_time(operation, prev_operation, machine_graph)
         else:
             pass
     else:
