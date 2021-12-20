@@ -560,7 +560,7 @@ def msts(instances_file, save_dir):
         #for oper in job:
     for oper in sorted_jobs:
         writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
-                        oper.mach_num, oper.processing_time, oper.setup_time, oper.finish_time])
+                        oper.mach_num, oper.processing_time, oper.transport_time, oper.finish_time])
     
     fp_csv.close()
 
