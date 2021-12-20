@@ -1,0 +1,58 @@
+pop_size = 10			# Keep an even number
+
+for i in range(pop_size):
+	curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+	## individual : [ (job_num1, op_num1, mach_num1, PT1, FT1), (job_num2, op_num2, mach_num2, PT2, FT2), ..., (job_num10, op_num10, mach_num10, PT10, FT10) ]
+	individual = convert_to_str_seq(curr_jobs, curr_graph)
+	population.append(individual)
+
+
+while epoch < epoch_max:
+	~~~ ... ~~~
+	TABU_SEARCH()
+	if neighbourhood:
+		for i in range(pop_size):
+			ind_mks = get_makespan(population[i])				# Get tuple with largest makespan
+			if best_neighbourhood.makespan < ind_mks:
+				new_ind = convert_to_str_seq(best_neighbourhood[0], best_neighbourhood[1])
+				population[i] = new_ind
+				break
+
+	~~~ ... ~~~
+	if TS_cnt == TS_cnt_max:
+		## https://stackabuse.com/how-to-randomly-select-elements-from-a-list-in-python/
+		shuffled_pairs = create_pairs(population)
+		for P1, P2 in shuffled_pairs:
+			O1, O2 = POX_crossover(P1, P2)
+			P1_mks = get_makespan(P1)
+			P2_mks = get_makespan(P2)
+			O1_mks = get_makespan(O1)
+			O2_mks = get_makespan(O2)
+			if P1_mks < P2_mks:
+				del P2
+				if P1_mks < global_best_mks:
+					global_best_mks = P1_mks
+					P1_jobs, P1_graph = convert_to_jobs_graph(P1, deepcopy(jobs_array), deepcopy(G))
+					global_best_sln = (P1_jobs, P1_graph)
+			else:
+				del P1
+				if P2_mks < global_best_mks:
+					global_best_mks = P2_mks
+					P2_jobs, P2_graph = convert_to_jobs_graph(P2, deepcopy(jobs_array), deepcopy(G))
+					global_best_sln = (P2_jobs, P2_graph)
+
+			if O1_mks < O2_mks:
+				population.append(O1)
+			else:
+				population.append(O2)
+
+		if p > p_exp_con:
+			curr_solution = deepcopy(global_best_sln)
+		elif p < 0.05:
+			random_initial_solution()
+		else:
+			np.random.choice(population)
+			curr_jobs, curr_graph = convert_to_jobs_graph(P2, deepcopy(jobs_array), deepcopy(G))
+			curr_solution = (curr_jobs, curr_graph)
+
+	~~~ ... ~~~
