@@ -619,9 +619,9 @@ if __name__ == '__main__':
     MK = ['01', '02', '03', '04', '05']
 
     """"""
-    test_name = "MK111.txt"
+    test_name = "YFJS01.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\BR\\" + test_name
+    filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
@@ -631,7 +631,7 @@ if __name__ == '__main__':
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\YFJS\\" + test_name
+        filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
         starttime = timeit.default_timer()
         print(starttime)
         sln, mks = msts(filename, save_dir)
@@ -642,7 +642,7 @@ if __name__ == '__main__':
     print("## DAFJS: ##")
     for file_num in DAFJS:
         test_name = "DAFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\DAFJS\\" + test_name
+        filename = "data\Benchmarks\T_Times\DAFJS\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -652,7 +652,7 @@ if __name__ == '__main__':
     print("## SFJS: ##")
     for file_num in SFJS:
         test_name = "sfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\FMJ\\" + test_name
+        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -662,7 +662,7 @@ if __name__ == '__main__':
     print("## MFJS: ##")
     for file_num in MFJS:
         test_name = "mfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\FMJ\\" + test_name
+        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -672,7 +672,7 @@ if __name__ == '__main__':
     print("## MK: ##")
     for file_num in MK:
         test_name = "MK" + file_num + ".txt"
-        filename = "data\Benchmarks\BR\\" + test_name
+        filename = "data\Benchmarks\T_Times\BR\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
