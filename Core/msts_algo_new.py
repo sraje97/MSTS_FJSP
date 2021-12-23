@@ -618,7 +618,7 @@ if __name__ == '__main__':
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MK = ['01', '02', '03', '04', '05']
 
-    """"""
+    """
     test_name = "YFJS01.txt"
     starttime = timeit.default_timer()
     filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
@@ -626,8 +626,8 @@ if __name__ == '__main__':
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
     """
+    """"""
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
@@ -677,7 +677,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
+    """"""
 
     # Keep log of test cases makespan and times
     design_csv_path = os.path.join(save_dir, 'TestCases.csv')
