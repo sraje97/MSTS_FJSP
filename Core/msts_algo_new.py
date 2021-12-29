@@ -196,7 +196,7 @@ def msts(instances_file, save_dir):
 
     # TODO: Get as inputs
     MA_algo_choice = "LUM"
-    OS_algo_choice = "LRMT"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -234,7 +234,7 @@ def msts(instances_file, save_dir):
     # Label the branches of the parallel paths and get precedence order dataframe
     jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
 
-    machines_array.sort()
+    #machines_array.sort()
     G = nx.Graph()
     for machine in machines_array:
         #print(machine)
@@ -611,23 +611,32 @@ if __name__ == '__main__':
     profiler.enable()
 
     # List of test instances
+    """
     YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13']
     DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '13', '14', \
              '17', '18', '19', '20', '21', '23', '24', '28', '29', '30']
     SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MK = ['01', '02', '03', '04', '05']
-
     """
-    test_name = "YFJS01.txt"
+
+    YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+    DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', \
+            '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30']
+    SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+
+    """"""
+    test_name = "MK10.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
+    filename = "data\Benchmarks\T_Times\BR\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
     """"""
+    """
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
@@ -677,7 +686,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
 
     # Keep log of test cases makespan and times
     design_csv_path = os.path.join(save_dir, 'TestCases.csv')

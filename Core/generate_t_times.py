@@ -34,7 +34,8 @@ def import_txt_data(filename):
             line = f.readline()
             if line == '':
                 t_times = None
-                break
+                return minP, maxP, medP, 0, 0, num_machs
+
             t_times.append( [int(x) for x in line.split()] )
         
         flat_list2 = [int(item) for sublist in t_times for item in sublist]
