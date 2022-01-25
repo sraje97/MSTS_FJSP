@@ -1,5 +1,6 @@
 import operator
 import networkx as nx
+from numpy import random
 
 import machine_assignment
 
@@ -76,10 +77,10 @@ def append_operation_tuple(job_array, operation, machine_graph, executable_opera
         remaining_time = get_total_remaining_time(job_array, operation)
         remaining_time -= machining_time
         executable_operations.append( (operation, remaining_time) )
-    else:
-        #release_time = operation.finish_time
-        #executable_operations.append( (operation, release_time) )
+    elif OS_algo == "ERT":
         executable_operations.append( (operation, operation.finish_time) )
+    else:
+        executable_operations.append( (operation, 0) )
     return executable_operations
 
 
@@ -161,7 +162,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
 def add_next_executable_operation(job, operation, machine_graph, executable_operations, scheduled_operations, OS_algo):
     # Get the index of the operation from the executable's list and remove it
     idx = [i for i, tupl in enumerate(executable_operations) if tupl[0].op_num == operation.op_num][0]
-    remaining_time = executable_operations[idx][1]
+    #remaining_time = executable_operations[idx][1]
     executable_operations.pop(idx)
 
     # Get the next operation in the job array
@@ -253,6 +254,31 @@ def schedule_SMT(jobs_array, machine_graph):
 
     return 1
 
+# Schedule operations with equal probability
+def schedule_random(jobs_array, machine_graph):
+    # Initialise lists to store already scheduled and next available operations
+    scheduled_operations = []
+    next_executable_operations = []
+
+    # For each starting operation (of a job), enable it to be available for scheduling
+    for i in range(len(jobs_array)):
+        operation = jobs_array[i][0]
+        next_executable_operations.append( (operation,  0) )
+
+    while next_executable_operations:
+        # Get the operation with shortest machining time
+        operation = next_executable_operations[random.choice(len(next_executable_operations))][0]
+        # operation = get_LRMT(next_executable_operations)[0]
+        job_array = jobs_array[ int(operation.job_num[1:]) - 1 ]
+
+        # Schedule that operation onto it's assigned machine
+        scheduled_operations = schedule_operation(job_array, operation, machine_graph, scheduled_operations)
+
+        # Add operation's successors to the executable operations list
+        next_executable_operations = add_next_executable_operation(job_array, operation, \
+                    machine_graph, next_executable_operations, scheduled_operations, "random")
+
+    return 1
 
 # Schedule operations using the Largest Remaining Machining Time (LRMT) algorithm
 def schedule_LRMT(jobs_array, machine_graph):

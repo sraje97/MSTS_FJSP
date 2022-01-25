@@ -1,5 +1,6 @@
 from collections import defaultdict
 import csv
+import os
 
 import pandas as pd
 import plotly.express as px
@@ -8,7 +9,7 @@ import plotly.express as px
 filepath = ''
 #filepath = input("Filename:")
 if filepath == '':
-    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\21-12-2021-17-07-21_EN-403038\\YFJS01\\best_design.csv'
+    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\23-12-2021-17-22-35_EN-403038\\YFJS01\\best_design.csv'
 
 mach_dict = defaultdict()
 
@@ -65,3 +66,6 @@ for d in fig.data:
     filt = gantt_df['Job'] == d.name
     d.x = gantt_df[filt]['Delta'].tolist()
 fig.show()
+if not os.path.exists("images"):
+    os.mkdir("images")
+fig.write_image("images/fig1.png")

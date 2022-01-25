@@ -181,9 +181,14 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
         #print("Return LRMT Schedule:", y)
         #print(graph.get_graph_info(machine_graph))
     # Earliest Release Time
-    else:
+    elif OS_algo == "ERT":
         #print(OS_algo)
         y = operation_scheduling.schedule_ERT(jobs_array, machine_graph)
+        #print("Return ERT Schedule:", y)
+        #print(graph.get_graph_info(machine_graph))
+    else:
+        #print(OS_algo)
+        y = operation_scheduling.schedule_random(jobs_array, machine_graph)
         #print("Return ERT Schedule:", y)
         #print(graph.get_graph_info(machine_graph))
     
@@ -195,8 +200,8 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "GREEDY"
-    OS_algo_choice = "LRMT"
+    MA_algo_choice = "random"
+    OS_algo_choice = "random"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -257,7 +262,8 @@ def msts(instances_file, save_dir):
     for i in range(pop_size):
         curr_jobs = mydeepcopy(jobs_array)
         curr_graph = mydeepcopy(G)
-        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, "Random", OS_algo_choice)
+        # TODO: Choose any one of the 3 MA&OS algo choice for each individual
+        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
         individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
         _, _, mks = calculate_makespan(curr_graph)
@@ -290,11 +296,6 @@ def msts(instances_file, save_dir):
     TS_cnt = 0          # Tabu Search counter
     global_improved = 0 # Global improvement counter
     tabu_list = []
-
-    # Initialise saves folders and files
-    #fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
-    #fp_log.write(MA_algo_choice, "\t", OS_algo_choice)
-    #fp_log.close()
 
     MSTS_start_time = timeit.default_timer()
     
