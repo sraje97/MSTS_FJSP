@@ -200,31 +200,35 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "random"
-    OS_algo_choice = "random"
+    MA_algo_choice = "Greedy"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
     basename = os.path.basename(instances_file)
     save_dir = os.path.join(save_dir, basename[:-4])
-    try:
+    """
+	try:
         # Create subdirectory for test instance
         os.makedirs(save_dir, exist_ok=True)
     except OSError:
         pass
+	"""
 
     #swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
     swap_methods = ["Critical Path MA", "Critical Path OS"]
-    TS_cnt_max = 20
+    epochs = 100         # (20, 50, 100?)
+    TS_cnt_max = 10     # (5, 10, 20)
+    pop_size = 200       # (50, 100, 200?)
+
     p_exp_con = 1.0
     p_MA_OS = 1.0
-    epochs = 50
+    
     eps_start = 1.0
     eps_end = 0.05
     eps_decay = 0.5
-    pop_size = 50
+        
     population = []
-
     TS_mks = []
     local_mks = []
     pop_mks = []
@@ -263,7 +267,9 @@ def msts(instances_file, save_dir):
         curr_jobs = mydeepcopy(jobs_array)
         curr_graph = mydeepcopy(G)
         # TODO: Choose any one of the 3 MA&OS algo choice for each individual
-        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+        MA_algo_choice_pop = np.random.choice(['Random', 'Greedy', 'LUM']) #, p=[0.35, 0.35, 0.3])
+        OS_algo_choice_pop = np.random.choice(['Random', 'LRMT', 'ERT']) #, p=[0.35, 0.35, 0.3])
+        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice_pop, OS_algo_choice_pop)
         individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
         _, _, mks = calculate_makespan(curr_graph)
@@ -539,6 +545,7 @@ def msts(instances_file, save_dir):
             global_best_sln = local_best_sln
             global_best_mks = local_best_mks
     
+    """
     # Create CSV to store best solution
     design_csv_path = os.path.join(save_dir, 'best_design.csv')
     fp_csv = open(design_csv_path, 'w', newline='')
@@ -566,6 +573,7 @@ def msts(instances_file, save_dir):
                         oper.mach_num, oper.processing_time, oper.transport_time, oper.finish_time])
     
     fp_csv.close()
+    
 
     # Keep log of TS iteration's makespan
     design_csv_path = os.path.join(save_dir, 'log_TS.csv')
@@ -586,8 +594,9 @@ def msts(instances_file, save_dir):
     for i in range(len(local_mks)):
         writer.writerow([i, local_mks[i], pop_mks[i]])
     fp_csv.close()
-    
-    return global_best_sln, global_best_mks
+    """
+
+    return global_best_sln, global_best_mks, e_cnt
 
 
 ### BEGIN MAIN PROGRAM ###
@@ -623,12 +632,11 @@ if __name__ == '__main__':
     MK = ['01', '02', '03', '04', '05']
     """
 
-    YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
-    DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', \
-            '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30']
+    YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
-    MK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MK = ['01', '02', '03', '04', '05']
 
     """
     test_name = "YFJS14.txt"
@@ -643,51 +651,51 @@ if __name__ == '__main__':
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
+        filename = "data\Benchmarks\YFJS\\" + test_name
         starttime = timeit.default_timer()
         print(starttime)
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        sln, mks, eph = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime, eph)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## DAFJS: ##")
     for file_num in DAFJS:
         test_name = "DAFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\T_Times\DAFJS\\" + test_name
+        filename = "data\Benchmarks\DAFJS\\" + test_name
         starttime = timeit.default_timer()
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        sln, mks, eph = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime, eph)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## SFJS: ##")
     for file_num in SFJS:
         test_name = "sfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
+        filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        sln, mks, eph = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime, eph)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## MFJS: ##")
     for file_num in MFJS:
         test_name = "mfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
+        filename = "data\Benchmarks\FMJ\\" + test_name
         starttime = timeit.default_timer()
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        sln, mks, eph = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime, eph)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """
     """
     print("## MK: ##")
     for file_num in MK:
         test_name = "MK" + file_num + ".txt"
-        filename = "data\Benchmarks\T_Times\BR\\" + test_name
+        filename = "data\Benchmarks\BR\\" + test_name
         starttime = timeit.default_timer()
-        sln, mks = msts(filename, save_dir)
-        task_dict[test_name] = (mks, timeit.default_timer() - starttime)
+        sln, mks, eph = msts(filename, save_dir)
+        task_dict[test_name] = (mks, timeit.default_timer() - starttime, eph)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """"""
 
@@ -696,9 +704,9 @@ if __name__ == '__main__':
     fp_csv = open(design_csv_path, 'w', newline='')
     writer = csv.writer(fp_csv)
 
-    writer.writerow(['Test Instance', 'Makespan', 'Runtime'])
+    writer.writerow(['Test Instance', 'Makespan', 'Runtime', 'Epoch'])
     for key, val in task_dict.items():
-        writer.writerow([key, val[0], val[1]])
+        writer.writerow([key, val[0], val[1], val[2]])
     fp_csv.close()
 
     # Disable Stats profiler
