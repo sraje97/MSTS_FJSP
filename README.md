@@ -17,6 +17,6 @@ This project utilises the Multi-Start Genetic Algorithm Tabu Search (MS-GATS) me
 'data' directory has each dataset in individual directories.
 Including modified datasets with transportation times (T_times)
 
-Virtual environment - use MEVenv
+Virtual environment - use requirements.txt to create VEnv
 
 Outputs are stored in 'output_models' named by date_PC-number.
