@@ -1,14 +1,19 @@
 from collections import defaultdict
 import csv
+import os
 
 import pandas as pd
 import plotly.express as px
 
+""" 
+Read Machine schedule from 'best_designs.csv' file to generate Gantt Chart
+using Plotly
+"""
 # File name
 filepath = ''
 #filepath = input("Filename:")
 if filepath == '':
-    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\20-12-2021-17-49-11_EN-403038\\MK111\\best_design.csv'
+    filepath = 'H:\\Documents\\\Masters\\IMPORTANT\\Results\\Final Output models\\Tests with Transportation Time\\01-01-2022-12-49-57_EN-403038_GREEDY_LRMT_1\\DAFJS14\\best_design.csv'
 
 mach_dict = defaultdict()
 
@@ -65,3 +70,6 @@ for d in fig.data:
     filt = gantt_df['Job'] == d.name
     d.x = gantt_df[filt]['Delta'].tolist()
 fig.show()
+if not os.path.exists("images"):
+    os.mkdir("images")
+fig.write_image("images/fig1.png")

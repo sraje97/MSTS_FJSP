@@ -1,5 +1,10 @@
 import networkx as nx
 
+"""
+Complete undirected graph structure for machine graph
+Includes transportation times in weighted edges
+"""
+
 ############################################################
 
 ## CREATE GRAPH STRUCTURE ##

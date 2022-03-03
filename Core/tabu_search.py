@@ -13,6 +13,12 @@ import machine_assignment
 #from msts_algo_new import calculate_makespan
 from operation_scheduling import get_start_time
 
+"""
+Conduct Tabu Search using neighbourhood structure.
+Using either CritPathMA (N1) or CritPathOS (N2).
+Return the ordered list of neighbouring solutions. 
+"""
+
 ############################################################
 
 def mydeepcopy(obj):
@@ -149,10 +155,14 @@ def get_critical_path(jobs_array, op_schedule):
     return CP, dj_graph.duration
 
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
+    # Get operation's assigned machine
+    machine = operation.mach_num
+    
     if operation.pre == None:
         # If no previous operation then get machine's latest finishing time
         prev_machine = ''
-        start_time = get_start_time(operation, None, machine_graph)
+        transport_time = 0
+        start_time = get_start_time(operation, None, machine_graph, transport_time)
     elif type(operation.pre) is list:
         # If previous operations are parallel branches, must wait till both have been scheduled
         branch_cnt = 0
@@ -168,8 +178,13 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                 if oper.finish_time > finish_time:
                     prev_operation = oper
                     finish_time = oper.finish_time
+            
             prev_machine = prev_operation.mach_num
-            start_time = get_start_time(operation, prev_operation, machine_graph)
+            if prev_machine == machine:
+                transport_time = 0
+            else:
+                transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
+            start_time = get_start_time(operation, prev_operation, machine_graph, transport_time)
         else:
             # Previous operations were not scheduled, hence return
             return scheduled_operations, -1
@@ -177,26 +192,31 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
         # If previous operation is scheduled, find the latest start time
         prev_operation = [item for item in job_array if item.op_num == operation.pre][0]
         prev_machine = prev_operation.mach_num
-        start_time = get_start_time(operation, prev_operation, machine_graph)
+        if prev_machine == machine:
+            transport_time = 0
+        else:
+            transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
+        start_time = get_start_time(operation, prev_operation, machine_graph, transport_time)
     else:
         # Previous operation was not scheduled, hence return
         return scheduled_operations, -1
     
     # Get current operation's machine schedule
-    machine = operation.mach_num
     op_schedule = machine_graph.nodes[machine]['op_schedule']
     idx = [i for i, tupl in enumerate(op_schedule) if tupl[0] == operation.op_num][-1]
 
-    # Calculate the transition time between previous and current machine
+    """
+    # Calculate the transport time between previous and current machine
     if prev_machine == '':
-        transition_time = 0
+        transport_time = 0
     elif prev_machine == machine:
-        transition_time = 0
+        transport_time = 0
     else:
-        transition_time = machine_assignment.get_transition_time(machine_graph, machine, prev_machine)
+        transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
 
-    # Add transition time to the start time
-    start_time += transition_time
+    # Add transport time to the start time
+    start_time += transport_time
+    """
     # Finish time is the starting time plus the processing time (ST + PT)
     finish_time = operation.processing_time + start_time
 
@@ -208,6 +228,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
     
     # Update the operation's finish time
     operation.finish_time = finish_time
+    operation.transport_time = transport_time
 
     scheduled_operations.append(operation.op_num)
     return scheduled_operations, 1

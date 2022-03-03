@@ -29,6 +29,11 @@ import tabu_search
 import machine_assignment
 import operation_scheduling
 
+"""
+MS-GATS algorithm entry point (main.py)
+Uses meta-heuristic functions to optimise the FJSP, EFJSP, and EFJSP with transportation constraints
+"""
+
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
 # Add base directory and the data directory to the system path
@@ -181,9 +186,14 @@ def initial_solution(jobs_array, machine_graph, MA_algo, OS_algo):
         #print("Return LRMT Schedule:", y)
         #print(graph.get_graph_info(machine_graph))
     # Earliest Release Time
-    else:
+    elif OS_algo == "ERT":
         #print(OS_algo)
         y = operation_scheduling.schedule_ERT(jobs_array, machine_graph)
+        #print("Return ERT Schedule:", y)
+        #print(graph.get_graph_info(machine_graph))
+    else:
+        #print(OS_algo)
+        y = operation_scheduling.schedule_random(jobs_array, machine_graph)
         #print("Return ERT Schedule:", y)
         #print(graph.get_graph_info(machine_graph))
     
@@ -195,8 +205,8 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "LUM"
-    OS_algo_choice = "LRMT"
+    MA_algo_choice = "greedy"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -208,9 +218,8 @@ def msts(instances_file, save_dir):
     except OSError:
         pass
 
-    #swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
     swap_methods = ["Critical Path MA", "Critical Path OS"]
-    TS_cnt_max = 10
+    TS_cnt_max = 20
     p_exp_con = 1.0
     p_MA_OS = 1.0
     epochs = 50
@@ -234,7 +243,7 @@ def msts(instances_file, save_dir):
     # Label the branches of the parallel paths and get precedence order dataframe
     jobs_array, op_df = preprocess.label_parallel_branches(jobs_array)
 
-    machines_array.sort()
+    #machines_array.sort()
     G = nx.Graph()
     for machine in machines_array:
         #print(machine)
@@ -257,7 +266,10 @@ def msts(instances_file, save_dir):
     for i in range(pop_size):
         curr_jobs = mydeepcopy(jobs_array)
         curr_graph = mydeepcopy(G)
-        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, "Random", OS_algo_choice)
+        # TODO: Choose any one of the 3 MA&OS algo choice for each individual
+        MA_algo_choice_pop = np.random.choice(['Random', 'Greedy', 'LUM'],  p=[0.10, 0.45, 0.45])
+        OS_algo_choice_pop = np.random.choice(['Random', 'LRMT', 'ERT'],  p=[0.10, 0.45, 0.45])
+        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice_pop, OS_algo_choice_pop)
         individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
         _, _, mks = calculate_makespan(curr_graph)
@@ -291,11 +303,6 @@ def msts(instances_file, save_dir):
     global_improved = 0 # Global improvement counter
     tabu_list = []
 
-    # Initialise saves folders and files
-    #fp_log = open(os.path.join(save_dir,  'log.txt'), 'w')
-    #fp_log.write(MA_algo_choice, "\t", OS_algo_choice)
-    #fp_log.close()
-
     MSTS_start_time = timeit.default_timer()
     
     while e_cnt < epochs:
@@ -322,20 +329,22 @@ def msts(instances_file, save_dir):
 
             if TS_itrs % 5 == 0:
                 TS_mks.append(best_neighbourhood[-1])
-            
-            # Place solution in population if makespan better than a current individual
-            for i in range(pop_size):
-                individual = max(population[i], key=operator.itemgetter(5))
-                if best_neighbourhood[-1] < individual[-1]:
-                    new_ind = crossover.convert_to_str_seq(best_neighbourhood[1])
-                    population[i] = new_ind
-                    break
-
-            # Tabu Tuple outline: (operation, machine, tabu_tenure)
-            tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3])
 
             # If there is an improvement in the makespan, keep the best neighbourhood solution
             if best_neighbourhood[-1] < local_best_mks:
+
+                # Place solution in population if makespan better than a current individual
+                for i in range(pop_size):
+                    individual = max(population[i], key=operator.itemgetter(5))
+                    if best_neighbourhood[-1] < individual[-1]:
+                        new_ind = crossover.convert_to_str_seq(best_neighbourhood[1])
+                        population[i] = new_ind
+                        break
+
+                # Tabu Tuple outline: (operation, machine, tabu_tenure)
+                tabu_tuple = (best_neighbourhood[2], best_neighbourhood[3])
+
+
                 if tabu_list:
                     for tupl in tabu_list:
                         if tupl[0] == tabu_tuple[0] and tupl[1] == tabu_tuple[1]:
@@ -560,7 +569,7 @@ def msts(instances_file, save_dir):
         #for oper in job:
     for oper in sorted_jobs:
         writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
-                        oper.mach_num, oper.processing_time, oper.setup_time, oper.finish_time])
+                        oper.mach_num, oper.processing_time, oper.transport_time, oper.finish_time])
     
     fp_csv.close()
 
@@ -611,27 +620,39 @@ if __name__ == '__main__':
     profiler.enable()
 
     # List of test instances
+    """
     YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13']
     DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '13', '14', \
              '17', '18', '19', '20', '21', '23', '24', '28', '29', '30']
     SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MK = ['01', '02', '03', '04', '05']
+    """
 
+    YFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+    DAFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', \
+            '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30']
+    SFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+    MK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
+
+    # Single test instance (comment/uncomment below)
     """"""
-    test_name = "MK111.txt"
+    test_name = "YFJS14.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\BR\\" + test_name
+    filename = "data\Benchmarks\YFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
     """"""
+    
+    # All problem instances for each Dataset (comment/uncomment below)
     """
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\YFJS\\" + test_name
+        filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
         starttime = timeit.default_timer()
         print(starttime)
         sln, mks = msts(filename, save_dir)
@@ -642,7 +663,7 @@ if __name__ == '__main__':
     print("## DAFJS: ##")
     for file_num in DAFJS:
         test_name = "DAFJS" + file_num + ".txt"
-        filename = "data\Benchmarks\DAFJS\\" + test_name
+        filename = "data\Benchmarks\T_Times\DAFJS\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -652,7 +673,7 @@ if __name__ == '__main__':
     print("## SFJS: ##")
     for file_num in SFJS:
         test_name = "sfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\FMJ\\" + test_name
+        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -662,7 +683,7 @@ if __name__ == '__main__':
     print("## MFJS: ##")
     for file_num in MFJS:
         test_name = "mfjs" + file_num + ".txt"
-        filename = "data\Benchmarks\FMJ\\" + test_name
+        filename = "data\Benchmarks\T_Times\FMJ\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
@@ -672,7 +693,7 @@ if __name__ == '__main__':
     print("## MK: ##")
     for file_num in MK:
         test_name = "MK" + file_num + ".txt"
-        filename = "data\Benchmarks\BR\\" + test_name
+        filename = "data\Benchmarks\T_Times\BR\\" + test_name
         starttime = timeit.default_timer()
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)

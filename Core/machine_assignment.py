@@ -3,16 +3,20 @@ import operator
 import networkx as nx
 from copy import deepcopy
 
-bigM = 999_999
+"""
+Dispatching rules for machine assignment/selection (MA or MS)
+Random, Greedy and LUM
+"""
 
+bigM = 999_999
 ############################################################
 
 # Get machining time for specific operation-machine combination [MT = (PT * alpha) + (ST * beta)]
 def calculate_machining_time(machine_graph, machine):
     return round( machine[1] * machine_graph.nodes[machine[0]]['alpha'] )
 
-# Get transition time from previous operation's machine to current operation's machine
-def get_transition_time(machine_graph, machA, machB):
+# Get transport time from previous operation's machine to current operation's machine
+def get_transport_time(machine_graph, machA, machB):
     return int(machine_graph.edges[machA, machB]['weight'])
 
 def get_best_node(p_queue):
@@ -77,9 +81,9 @@ def make_path_node(operation, machine_graph, machine, prev_machine, node):
     path_seq = node[1]
     path_seq.append(machine[0])
 
-    # Calculate total machining and transition time and previous time
+    # Calculate total machining and transport time and previous time
     total_time = calculate_machining_time(machine_graph, machine) + \
-                get_transition_time(machine_graph, prev_machine, machine[0]) + node[2]
+                get_transport_time(machine_graph, prev_machine, machine[0]) + node[2]
 
     # Create node/tuple
     path_node = (operation, path_seq, total_time)

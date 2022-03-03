@@ -5,6 +5,11 @@ import pandas as pd
 import import_data
 from operation import Operation
 
+"""
+Read and import data and convert into APG for jobs and machine graphs for machines.
+Label parallel branches and predecessor/successor operations.
+"""
+
 ############################################################
 
 # Change the labels of operations from numbers to standard labelling method i.e. "O1_10"
@@ -176,15 +181,20 @@ def initialise_operations(datafile):
                 eligible_machines.append( (machine, int(process_time)) )
 
                 # Store the different number of machines
-                if machine not in unique_machines:
-                    unique_machines.append(machine)
+                if int(machine[1:]) not in unique_machines:
+                    unique_machines.append(int(machine[1:]))
                 j += 2
                             
             op = [item for item in temp_jobs if item.op_num == machine_set[0]][0]
             op.machines = eligible_machines
         
-        #for op in temp_jobs:
-        #    print(op.op_num, op.job_num, op.pre, op.succ, op.machines)
+        #unique_machines = sorted(unique_machines, key=lambda x: int("".join([i for i in x if i.isdigit()])))
+        unique_machines.sort()
+        missing_machs = [unique_machines.append(x) for x in range(unique_machines[0], unique_machines[-1]+1) \
+                        if x not in unique_machines]
+
+        unique_machines.sort()
+        unique_machines = ["M"+str(x) for x in unique_machines]
 
         # Get the number of jobs n, and create n nested lists in jobs_array
         max_jobs = int(op.job_num[1:])

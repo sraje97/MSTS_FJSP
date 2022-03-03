@@ -1,5 +1,9 @@
 import numpy as np
 
+"""
+Import data from benchmarking tests
+"""
+
 def import_txt_data(filename):
     with open(filename) as f:
         line = f.readline()

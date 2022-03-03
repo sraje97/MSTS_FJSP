@@ -1,7 +1,13 @@
 import operator
 import networkx as nx
+from numpy import random
 
 import machine_assignment
+
+"""
+Dispatching rules for operation sequencing (OS)
+Random, ERT, LRMT
+"""
 
 ############################################################
 
@@ -29,7 +35,7 @@ def get_flag(operation, executable_operations):
     return False
 
 # Get the the earliest start time for an operation
-def get_start_time(operation, prev_operation, machine_graph):
+def get_start_time(operation, prev_operation, machine_graph, transport_time):
 	machine = operation.mach_num
 	
 	# Get machine's schedule
@@ -40,7 +46,7 @@ def get_start_time(operation, prev_operation, machine_graph):
 	if prev_operation == None:
 		return machine_finish_time[-1]
 	else:
-		return max(prev_operation.finish_time, machine_finish_time[-1])
+		return max(prev_operation.finish_time + transport_time, machine_finish_time[-1])
 
 def get_total_remaining_time(job_array, op=None):
     total_time = 0
@@ -76,22 +82,30 @@ def append_operation_tuple(job_array, operation, machine_graph, executable_opera
         remaining_time = get_total_remaining_time(job_array, operation)
         remaining_time -= machining_time
         executable_operations.append( (operation, remaining_time) )
-    else:
-        #release_time = operation.finish_time
-        #executable_operations.append( (operation, release_time) )
+    elif OS_algo == "ERT":
         executable_operations.append( (operation, operation.finish_time) )
+    else:
+        executable_operations.append( (operation, 0) )
     return executable_operations
 
 
 def schedule_operation(job_array, operation, machine_graph, scheduled_operations):
+    # Get operation's assigned machine
+    machine = operation.mach_num
+    
     # Get the start time depending on previous operation or current machine's finishing time
     if operation.pre == None:
         prev_machine = ''
-        start_time = get_start_time(operation, None, machine_graph)
+        transport_time = 0
+        start_time = get_start_time(operation, None, machine_graph, transport_time)
     elif operation.pre in scheduled_operations:
         prev_operation = [item for item in job_array if item.op_num == operation.pre][0]
         prev_machine = prev_operation.mach_num
-        start_time = get_start_time(operation, prev_operation, machine_graph)
+        if prev_machine == machine:
+            transport_time = 0
+        else:
+            transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
+        start_time = get_start_time(operation, prev_operation, machine_graph, transport_time)
     elif type(operation.pre) is list:
         # If previous operations are parallel branches, must wait till both have been scheduled
         branch_cnt = 0
@@ -108,27 +122,32 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
                     prev_operation = oper
             
             prev_machine = prev_operation.mach_num
-            start_time = get_start_time(operation, prev_operation, machine_graph)
+            if prev_machine == machine:
+                transport_time = 0
+            else:
+                transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
+            start_time = get_start_time(operation, prev_operation, machine_graph, transport_time)
         else:
             pass
     else:
         print("Previous operation not found")
 
     # Get current operation's machine schedule
-    machine = operation.mach_num
     op_schedule = machine_graph.nodes[machine]['op_schedule']
     idx = [i for i, tupl in enumerate(op_schedule) if tupl[0] == operation.op_num][-1]
 
-    # Calculate the transition time between previous and current machine
+    """
+    # Calculate the transport time between previous and current machine
     if prev_machine == '':
-        transition_time = 0
+        transport_time = 0
     elif prev_machine == machine:
-        transition_time = 0
+        transport_time = 0
     else:
-        transition_time = machine_assignment.get_transition_time(machine_graph, machine, prev_machine)
+        transport_time = machine_assignment.get_transport_time(machine_graph, machine, prev_machine)
     
-    # Add transition time to the start time
-    start_time += transition_time
+    # Add transport time to the start time
+    start_time += transport_time
+    """
     # Finish time is the starting time plus the processing time (ST + PT)
     finish_time = operation.processing_time + start_time
 
@@ -140,6 +159,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
     
     # Update the operation's finish time
     operation.finish_time = finish_time
+    operation.transport_time = transport_time
 
     scheduled_operations.append(operation.op_num)
     return scheduled_operations
@@ -147,7 +167,7 @@ def schedule_operation(job_array, operation, machine_graph, scheduled_operations
 def add_next_executable_operation(job, operation, machine_graph, executable_operations, scheduled_operations, OS_algo):
     # Get the index of the operation from the executable's list and remove it
     idx = [i for i, tupl in enumerate(executable_operations) if tupl[0].op_num == operation.op_num][0]
-    remaining_time = executable_operations[idx][1]
+    #remaining_time = executable_operations[idx][1]
     executable_operations.pop(idx)
 
     # Get the next operation in the job array
@@ -239,6 +259,31 @@ def schedule_SMT(jobs_array, machine_graph):
 
     return 1
 
+# Schedule operations with equal probability
+def schedule_random(jobs_array, machine_graph):
+    # Initialise lists to store already scheduled and next available operations
+    scheduled_operations = []
+    next_executable_operations = []
+
+    # For each starting operation (of a job), enable it to be available for scheduling
+    for i in range(len(jobs_array)):
+        operation = jobs_array[i][0]
+        next_executable_operations.append( (operation,  0) )
+
+    while next_executable_operations:
+        # Get the operation with shortest machining time
+        operation = next_executable_operations[random.choice(len(next_executable_operations))][0]
+        # operation = get_LRMT(next_executable_operations)[0]
+        job_array = jobs_array[ int(operation.job_num[1:]) - 1 ]
+
+        # Schedule that operation onto it's assigned machine
+        scheduled_operations = schedule_operation(job_array, operation, machine_graph, scheduled_operations)
+
+        # Add operation's successors to the executable operations list
+        next_executable_operations = add_next_executable_operation(job_array, operation, \
+                    machine_graph, next_executable_operations, scheduled_operations, "random")
+
+    return 1
 
 # Schedule operations using the Largest Remaining Machining Time (LRMT) algorithm
 def schedule_LRMT(jobs_array, machine_graph):
