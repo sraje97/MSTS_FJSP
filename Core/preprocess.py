@@ -5,6 +5,11 @@ import pandas as pd
 import import_data
 from operation import Operation
 
+"""
+Read and import data and convert into APG for jobs and machine graphs for machines.
+Label parallel branches and predecessor/successor operations.
+"""
+
 ############################################################
 
 # Change the labels of operations from numbers to standard labelling method i.e. "O1_10"

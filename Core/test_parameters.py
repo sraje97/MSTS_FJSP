@@ -1,3 +1,7 @@
+"""
+Used for the Taguchi Analysis to test different parameter configurations.
+"""
+
 ############################################################
 
 ## IMPORT PYTHON PACKAGES

@@ -13,6 +13,12 @@ import machine_assignment
 #from msts_algo_new import calculate_makespan
 from operation_scheduling import get_start_time
 
+"""
+Conduct Tabu Search using neighbourhood structure.
+Using either CritPathMA (N1) or CritPathOS (N2).
+Return the ordered list of neighbouring solutions. 
+"""
+
 ############################################################
 
 def mydeepcopy(obj):

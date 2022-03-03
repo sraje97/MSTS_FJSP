@@ -29,6 +29,11 @@ import tabu_search
 import machine_assignment
 import operation_scheduling
 
+"""
+MS-GATS algorithm entry point (main.py)
+Uses meta-heuristic functions to optimise the FJSP, EFJSP, and EFJSP with transportation constraints
+"""
+
 # Sets base directory one level higher than current file (@ X:\\..\\MSTS_FJSP)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
 # Add base directory and the data directory to the system path
@@ -200,8 +205,8 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "random"
-    OS_algo_choice = "random"
+    MA_algo_choice = "greedy"
+    OS_algo_choice = "ERT"
     print(OS_algo_choice)
 
     # Add test instance name to the save directory name
@@ -213,7 +218,6 @@ def msts(instances_file, save_dir):
     except OSError:
         pass
 
-    #swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
     swap_methods = ["Critical Path MA", "Critical Path OS"]
     TS_cnt_max = 20
     p_exp_con = 1.0
@@ -263,7 +267,9 @@ def msts(instances_file, save_dir):
         curr_jobs = mydeepcopy(jobs_array)
         curr_graph = mydeepcopy(G)
         # TODO: Choose any one of the 3 MA&OS algo choice for each individual
-        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+        MA_algo_choice_pop = np.random.choice(['Random', 'Greedy', 'LUM'],  p=[0.10, 0.45, 0.45])
+        OS_algo_choice_pop = np.random.choice(['Random', 'LRMT', 'ERT'],  p=[0.10, 0.45, 0.45])
+        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice_pop, OS_algo_choice_pop)
         individual = crossover.convert_to_str_seq(curr_graph)
         population.append(individual)
         _, _, mks = calculate_makespan(curr_graph)
@@ -630,16 +636,19 @@ if __name__ == '__main__':
     MFJS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     MK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
-    """
+    # Single test instance (comment/uncomment below)
+    """"""
     test_name = "YFJS14.txt"
     starttime = timeit.default_timer()
-    filename = "data\Benchmarks\T_Times\YFJS\\" + test_name
+    filename = "data\Benchmarks\YFJS\\" + test_name
     sln, mks = msts(filename, save_dir)
     task_dict[test_name] = (mks, timeit.default_timer() - starttime)
 
     print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """
     """"""
+    
+    # All problem instances for each Dataset (comment/uncomment below)
+    """
     print("## YFJS: ##")
     for file_num in YFJS:
         test_name = "YFJS" + file_num + ".txt"
@@ -689,7 +698,7 @@ if __name__ == '__main__':
         sln, mks = msts(filename, save_dir)
         task_dict[test_name] = (mks, timeit.default_timer() - starttime)
         print("Time taken for", filename, ":", timeit.default_timer() - starttime, "Makespan:", mks)
-    """"""
+    """
 
     # Keep log of test cases makespan and times
     design_csv_path = os.path.join(save_dir, 'TestCases.csv')

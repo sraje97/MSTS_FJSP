@@ -5,11 +5,15 @@ import os
 import pandas as pd
 import plotly.express as px
 
+""" 
+Read Machine schedule from 'best_designs.csv' file to generate Gantt Chart
+using Plotly
+"""
 # File name
 filepath = ''
 #filepath = input("Filename:")
 if filepath == '':
-    filepath = 'H:\\Documents\\Github\\MSTS_FJSP\\output_models\\23-12-2021-17-22-35_EN-403038\\YFJS01\\best_design.csv'
+    filepath = 'H:\\Documents\\\Masters\\IMPORTANT\\Results\\Final Output models\\Tests with Transportation Time\\01-01-2022-12-49-57_EN-403038_GREEDY_LRMT_1\\DAFJS14\\best_design.csv'
 
 mach_dict = defaultdict()
 

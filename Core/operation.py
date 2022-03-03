@@ -1,3 +1,7 @@
+"""
+Data structure to hold individual operation information
+"""
+
 ############################################################
 
 class Operation:

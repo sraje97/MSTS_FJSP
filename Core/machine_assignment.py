@@ -3,8 +3,12 @@ import operator
 import networkx as nx
 from copy import deepcopy
 
-bigM = 999_999
+"""
+Dispatching rules for machine assignment/selection (MA or MS)
+Random, Greedy and LUM
+"""
 
+bigM = 999_999
 ############################################################
 
 # Get machining time for specific operation-machine combination [MT = (PT * alpha) + (ST * beta)]

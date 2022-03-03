@@ -4,6 +4,11 @@ from numpy import random
 
 import machine_assignment
 
+"""
+Dispatching rules for operation sequencing (OS)
+Random, ERT, LRMT
+"""
+
 ############################################################
 
 # Get operation with shortest machining time (SMT)

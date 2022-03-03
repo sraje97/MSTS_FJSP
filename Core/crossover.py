@@ -6,6 +6,12 @@ import networkx as nx
 from msts_algo_new import calculate_makespan
 from tabu_search import get_operation_job, recompute_times, flatten_job
 
+"""
+Generates chromosome string for GA
+Performs crossover and mutation operators
+Convert back to machine graph and job arrays
+"""
+
 # Convert a machine schedule to a sequence string containing a topological order of operations
 def convert_to_str_seq(machine_graph):
     str_seq = []

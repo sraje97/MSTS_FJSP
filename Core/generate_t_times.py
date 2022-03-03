@@ -4,6 +4,10 @@ import numpy as np
 
 random.seed(1)
 
+"""
+Generate transportation times for each dataset based on 0.1-0.3x median processing times
+"""
+
 def import_txt_data(filename):
     with open(filename) as f:
         line = f.readline()

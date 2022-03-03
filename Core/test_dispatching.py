@@ -1,3 +1,8 @@
+"""
+Test dispatching rules.
+Generates only initial solutions via dispatching rules.
+"""
+
 ############################################################
 
 ## IMPORT PYTHON PACKAGES
@@ -200,18 +205,9 @@ def msts(instances_file, save_dir):
     ############################################################
 
     # TODO: Get as inputs
-    MA_algo_choice = "LUM"
-    OS_algo_choice = "lrmt"
+    MA_algo_choice = "random"
+    OS_algo_choice = "random"
     print(OS_algo_choice)
-
-    # Add test instance name to the save directory name
-    basename = os.path.basename(instances_file)
-    save_dir = os.path.join(save_dir, basename[:-4])
-    try:
-        # Create subdirectory for test instance
-        os.makedirs(save_dir, exist_ok=True)
-    except OSError:
-        pass
 
     #swap_methods = ["Random MA", "LPT MA", "HMW MA", "Random OS", "HMW OS"]
     swap_methods = ["Critical Path MA", "Critical Path OS"]
@@ -262,37 +258,19 @@ def msts(instances_file, save_dir):
 
     MSTS_start_time = timeit.default_timer()
 
-    ## Get initial solution ##
-    curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
-
-    _, _, best_mks = calculate_makespan(curr_graph)
+    pop_mks_sum = 0
+    for i in range(pop_size):
+        curr_jobs = mydeepcopy(jobs_array)
+        curr_graph = mydeepcopy(G)
+        # TODO: Choose any one of the 3 MA&OS algo choice for each individual
+        curr_jobs, curr_graph = initial_solution(curr_jobs, curr_graph, MA_algo_choice, OS_algo_choice)
+        individual = crossover.convert_to_str_seq(curr_graph)
+        population.append(individual)
+        _, _, mks = calculate_makespan(curr_graph)
+        pop_mks_sum += mks
+    pop_mks.append( pop_mks_sum / pop_size)
     
-    # Create CSV to store best solution
-    design_csv_path = os.path.join(save_dir, 'best_design.csv')
-    fp_csv = open(design_csv_path, 'w', newline='')
-    writer = csv.writer(fp_csv)
-
-    writer.writerow(['Makespan', repr(best_mks)])
-    writer.writerow(['OS Algo Choice', repr(OS_algo_choice), 'MS Algo Choice', repr(MA_algo_choice)])
-    writer.writerow(['Epochs', repr(0), 'Time', round(timeit.default_timer() - MSTS_start_time, 3), \
-                    'Probability', repr(p_exp_con)])
-
-    writer.writerow(["Machine", "Machine_schedule"])
-
-    schedule = graph.get_op_schedule(curr_graph)
-    for key, val in schedule.items():
-        writer.writerow([repr(key), repr(val)])
-    
-    writer.writerow(['Job', 'Operation'])
-    
-    sorted_jobs = tabu_search.flatten_job(curr_jobs)
-    for oper in sorted_jobs:
-        writer.writerow([oper.job_num, oper.op_num, oper.pre, oper.succ, oper.series, oper.machines, \
-                        oper.mach_num, oper.processing_time, oper.transport_time, oper.finish_time])
-    
-    fp_csv.close()
-    
-    return (curr_jobs, curr_graph), best_mks
+    return (curr_jobs, curr_graph), pop_mks
 
 
 ### BEGIN MAIN PROGRAM ###
@@ -403,7 +381,7 @@ if __name__ == '__main__':
 
     writer.writerow(['Test Instance', 'Makespan', 'Runtime'])
     for key, val in task_dict.items():
-        writer.writerow([key, val[0], val[1]])
+        writer.writerow([key, val[0][0], val[1]])
     fp_csv.close()
 
     # Disable Stats profiler
